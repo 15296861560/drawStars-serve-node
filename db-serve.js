@@ -11,6 +11,7 @@ const controller = require('./routers/controller')
 const agoraApi = require('./routers/agora-api')
 const translateApi = require('./routers/translate-api')
 const payApi = require('./routers/pay-api')
+const resourceApi = require('./routers/resource-api')
 
 // json 解析 
 server.use(express.json());
@@ -34,6 +35,7 @@ server.use('/controller', controller)
 server.use('/agoraApi', agoraApi)
 server.use('/translateApi', translateApi)
 server.use('/payApi', payApi)
+server.use('/resourceApi', resourceApi)
 
 
 server.listen(port)
