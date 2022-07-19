@@ -3,17 +3,19 @@ const router = express.Router()
 const db = require('../public/db/mysql/base')
 
 // 该路由使用的中间件
-/*router.use(function timeLog(req, res, next) {
+router.use(function timeLog(req, res, next) {
+  console.log('req.originalUrl : ', req.originalUrl);
   console.log('Time: ', new Date());
   next();
-});*/
+});
 
 // 登录接口，并且验证密码--查询方法的使用案例
 router.post('/login', function (req, res) {
   let name = req.body.name;
   let password = req.body.password;
+  let values = [name];
 
-  db.selectData('select * from user where name = ' + name, (e, r) => {
+  db.selectData('select * from user where name = ?', values, (e, r) => {
     let message = '登录成功',
       status = true,
       resultData = r;
@@ -113,7 +115,7 @@ router.post('/modify', (req, res) => {
 })
 
 router.post('/query', function (req, res) {
-  db.selectData('select id,name,level,phone from user', (e, r) => {
+  db.selectData('select id,name,level,phone from user', [], (e, r) => {
     let message = '查询成功',
       status = true,
       resultData = r;
@@ -132,8 +134,9 @@ router.post('/query', function (req, res) {
 
 router.post('/sql', function (req, res) {
   let sql = req.body.sql;
+  let values = req.body.values || [];
 
-  db.selectData(sql, (e, r) => {
+  db.selectData(sql, values, (e, r) => {
     let message = '执行成功',
       status = true,
       resultData = r;

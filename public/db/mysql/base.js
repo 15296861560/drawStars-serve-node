@@ -2,8 +2,8 @@ const conn = require('../../../config/mysql-config.js');
 const connection = conn();
 
 // 查询所有数据
-let selectData = (sql, callback) => {
-  connection.query(sql, (err, result) => {
+let selectData = (sql, values = [], callback) => {
+  connection.query(sql, values, (err, result) => {
     if (err) {
       console.log('错误信息-', err.sqlMessage);
       let errNews = err.sqlMessage;
@@ -18,40 +18,47 @@ let selectData = (sql, callback) => {
 // 插入一条数据
 let insertData = (table, datas, callback) => {
   let fields = '';
-  let values = '';
+  let questions = '';
+  let values = [];
   for (let k in datas) {
     fields += k + ',';
-    values = values + "'" + datas[k] + "',"
+    questions = questions + "?,";
+    values.push(datas[k]);
   }
   fields = fields.slice(0, -1);
-  values = values.slice(0, -1);
-  let sql = "INSERT INTO " + table + '(' + fields + ') VALUES(' + values + ')';
-  connection.query(sql, callback);
+  questions = questions.slice(0, -1);
+  let sql = "INSERT INTO " + table + '(' + fields + ') VALUES(' + questions + ')';
+  connection.query(sql, values, callback);
 }
 // 更新一条数据
 let updateData = function (table, sets, where, callback) {
   let _SETS = '';
   let _WHERE = '';
+  let values = [];
   for (let k in sets) {
-    _SETS += k + "=" + sets[k] + ",";
+    _SETS += k + "=?,";
+    values.push(sets[k]);
   }
   _SETS = _SETS.slice(0, -1);
   for (let k2 in where) {
-    _WHERE += k2 + "=" + where[k2];
+    _WHERE += k2 + "=?";
+    values.push(where[k2]);
   }
   let sql = "UPDATE " + table + ' SET ' + _SETS + ' WHERE ' + _WHERE;
-  connection.query(sql, callback);
+  connection.query(sql, values, callback);
 }
 
 // 删除一条数据
 let deleteData = function (table, where, callback) {
   let _WHERE = '';
+  let values = [];
   for (let k in where) {
     //多个筛选条件使用  _WHERE+=k+"='"+where[k]+"' AND ";
-    _WHERE += k + "=" + where[k];
+    _WHERE += k + "=?";
+    values.push(where[k]);
   }
   let sql = "DELETE  FROM " + table + ' WHERE ' + _WHERE;
-  connection.query(sql, callback);
+  connection.query(sql, values, callback);
 }
 
 
