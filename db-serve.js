@@ -1,6 +1,6 @@
 const express = require('express')
-// const port = 8010 //发布端口
-const port = 8011; //本地测试端口
+const port = 8010 //发布端口
+// const port = 8011; //本地测试端口
 
 
 const server = express()
@@ -12,6 +12,7 @@ const agoraApi = require('./routers/agora-api')
 const translateApi = require('./routers/translate-api')
 const payApi = require('./routers/pay-api')
 const resourceApi = require('./routers/resource-api')
+const profileApi = require('./routers/profile-api')
 
 // json 解析 
 server.use(express.json());
@@ -36,6 +37,7 @@ server.use('/agoraApi', agoraApi)
 server.use('/translateApi', translateApi)
 server.use('/payApi', payApi)
 server.use('/resourceApi', resourceApi)
+server.use('/profileApi', profileApi)
 
 
 server.listen(port)
