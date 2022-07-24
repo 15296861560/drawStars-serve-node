@@ -29,6 +29,7 @@ router.get('/queryUserInfo', function (req, res) {
 });
 
 function updateUserInfo(res, _set, _where) {
+  _set.updateTime = new Date().getTime();
   db.updateData('user', _set, _where, (e, r) => {
     let message = '修改成功',
       status = true,
