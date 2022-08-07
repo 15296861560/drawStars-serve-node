@@ -1,3 +1,11 @@
+/*
+ * @Description: 
+ * @Version: 2.0
+ * @Autor: lgy
+ * @Date: 2022-05-23 21:06:25
+ * @LastEditors: lgy
+ * @LastEditTime: 2022-08-03 23:50:23
+ */
 const express = require('express')
 const port = 8010 //发布端口
 // const port = 8011; //本地测试端口
@@ -13,6 +21,8 @@ const translateApi = require('./routers/translate-api')
 const payApi = require('./routers/pay-api')
 const resourceApi = require('./routers/resource-api')
 const profileApi = require('./routers/profile-api')
+const loginApi = require('./routers/login-api')
+const tokenVerify = require('./public/provider/tokenVerify')
 
 // json 解析 
 server.use(express.json());
@@ -30,6 +40,7 @@ server.all('*', function (req, res, next) {
 });
 // 暴露公共资源
 server.use(express.static('public'))
+server.use(tokenVerify)
 server.use('/mysqlApi', mysqlApi)
 server.use('/testApi', testApi)
 server.use('/controller', controller)
@@ -38,6 +49,7 @@ server.use('/translateApi', translateApi)
 server.use('/payApi', payApi)
 server.use('/resourceApi', resourceApi)
 server.use('/profileApi', profileApi)
+server.use('/loginApi', loginApi)
 
 
 server.listen(port)
