@@ -4,12 +4,13 @@
  * @Autor: lgy
  * @Date: 2022-07-24 23:40:49
  * @LastEditors: lgy
- * @LastEditTime: 2022-08-07 16:17:15
+ * @LastEditTime: 2022-08-13 20:03:19
  */
 const {
     getAppInfo
 } = require('../../public/db/mysql/commom-api')
 const AccessToken = require("./tokenBuild").AccessToken
+const Log = require("./log")
 
 
 let appID = "";
@@ -43,6 +44,16 @@ let verifyToken = function (token) {
 }
 
 let tokenVerify = function (req, res, next) {
+    let type = Log.LOG_TYPE.API;
+    let hostname = req.hostname;
+    let originalUrl = req.originalUrl;
+    let urlArray = originalUrl.split("/");
+    let content = {
+        module: urlArray[0],
+        methods: urlArray.slice(-1)[0]
+    };
+    Log.addLog(type, hostname, originalUrl, content);
+
     if (req.originalUrl.startsWith('/loginApi')) {
         next()
     } else {
