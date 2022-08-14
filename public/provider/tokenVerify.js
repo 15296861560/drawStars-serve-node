@@ -4,7 +4,7 @@
  * @Autor: lgy
  * @Date: 2022-07-24 23:40:49
  * @LastEditors: lgy
- * @LastEditTime: 2022-08-13 20:03:19
+ * @LastEditTime: 2022-08-14 21:29:05
  */
 const {
     getAppInfo
@@ -63,7 +63,7 @@ let tokenVerify = function (req, res, next) {
             res.status(200).json({
                 "status": false,
                 "msg": "token验证未通过",
-                "data": "token验证未通过",
+                "code": "TOKEN-FAIL",
             });
             return
         }
