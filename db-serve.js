@@ -4,7 +4,7 @@
  * @Autor: lgy
  * @Date: 2022-05-23 21:06:25
  * @LastEditors: lgy
- * @LastEditTime: 2022-08-03 23:50:23
+ * @LastEditTime: 2022-10-29 17:30:17
  */
 const express = require('express')
 const port = 8010 //发布端口
@@ -23,6 +23,10 @@ const resourceApi = require('./routers/resource-api')
 const profileApi = require('./routers/profile-api')
 const loginApi = require('./routers/login-api')
 const tokenVerify = require('./public/provider/tokenVerify')
+
+
+require('./public/ws/wsServer')
+
 
 // json 解析 
 server.use(express.json());
