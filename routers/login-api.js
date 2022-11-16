@@ -4,7 +4,7 @@
  * @Autor: lgy
  * @Date: 2022-07-24 23:40:49
  * @LastEditors: lgy
- * @LastEditTime: 2022-08-07 16:39:17
+ * @LastEditTime: 2022-11-09 23:18:49
  */
 const express = require('express')
 const router = express.Router()
@@ -58,56 +58,102 @@ let verifyToken = function (token) {
 
 }
 
+function queryUserByPhone(phone) {
+  return new Promise((resolve, reject) => {
+    let values = [phone];
+    db.selectData('select * from user where phone = ?', values, (e, r) => {
+      e && reject(e)
+
+      if (r.length !== 0) {
+        resolve(r[0]);
+      } else {
+        resolve(null);
+      }
+    })
+  })
+}
+
 // 登录接口，并且验证密码
-router.post('/loginByPassword', function (req, res) {
+router.post('/loginByPassword', async function (req, res) {
   let phone = req.body.phone;
   let password = req.body.password;
-  let values = [phone];
 
-  db.selectData('select * from user where phone = ?', values, (e, r) => {
-    let message = '登录成功',
-      status = true,
-      resultData = r;
+  let message,
+    status,
+    resultData;
 
-    if (r.length == 0) {
+  try {
+    let userInfo = await queryUserByPhone(phone);
+    if (!userInfo) {
       message = "账号不存在";
-    } else if (password != r[0].password) {
+    } else if (password !== userInfo.password) {
       message = "密码错误";
     } else {
-      resultData = r[0];
+      message = '登录成功'
+      status = true;
+      resultData = userInfo;
       setToken(resultData, req);
     }
-    if (e) {
-      message = "登录失败"
-      status = false;
-      resultData = e;
-    }
-    res.status(200).json({
-      "status": status,
-      "msg": message,
-      "data": resultData
-    });
-  })
+
+  } catch (e) {
+    message = "登录失败"
+    status = false;
+    resultData = e;
+  }
+  res.status(200).json({
+    "status": status,
+    "msg": message,
+    "data": resultData
+  });
+
 });
 // 注册接口
-router.post('/register', (req, res) => {
+router.post('/registerByPhone', async (req, res) => {
   let nowDate = new Date().getTime();
+  let phone = req.body.phone;
   let saveData = {
     "name": req.body.name,
     "password": req.body.password,
-    "phone": req.body.phone,
+    "phone": phone,
     "createTime": nowDate,
     "updateTime": nowDate,
     "level": 1,
   };
-  db.insertData('user', saveData, (e, r) => {
-    let message = '注册成功',
-      status = true,
-      resultData = r;
+
+  let message = '注册成功',
+    status = true;
+  try {
+    let hasUser = await queryUserByPhone(phone);
+    if (hasUser) {
+      message = "注册失败,该手机号已注册";
+      res.status(200).json({
+        "status": false,
+        "msg": message,
+        "data": null
+      });
+      return;
+    }
+
+  } catch (e) {
+    res.status(200).json({
+      "status": false,
+      "msg": e,
+      "data": null
+    });
+    return;
+  }
+
+
+
+  db.insertData('user', saveData, async (e, r) => {
+    let userInfo = await queryUserByPhone(phone);
+    resultData = userInfo;
     if (e) {
       message = "注册失败"
       status = false;
       resultData = e;
+    } else {
+      setToken(resultData, req);
     }
     res.status(200).json({
       "status": status,
