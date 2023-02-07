@@ -75,7 +75,7 @@ router.post('/changePassword', (req, res) => {
   let password = req.body.password;
 
   db.selectData("SELECT password FROM user WHERE id=?", [req.body.id], (e, r) => {
-    let sqlPassword = r;
+    let sqlPassword = r[0].password;
 
     if (e || sqlPassword !== password) {
       res.status(200).json({
