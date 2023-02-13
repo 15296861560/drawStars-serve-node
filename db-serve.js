@@ -4,7 +4,7 @@
  * @Autor: lgy
  * @Date: 2022-05-23 21:06:25
  * @LastEditors: lgy
- * @LastEditTime: 2022-10-29 17:30:17
+ * @LastEditTime: 2023-02-13 22:30:03
  */
 const express = require('express')
 const port = 8010 //发布端口
@@ -26,6 +26,7 @@ const tokenVerify = require('./public/provider/tokenVerify')
 
 
 require('./public/ws/wsServer')
+require('./config/redis-config.js');
 
 
 // json 解析 

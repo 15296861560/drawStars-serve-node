@@ -4,14 +4,15 @@
  * @Autor: lgy
  * @Date: 2022-08-07 22:19:24
  * @LastEditors: lgy
- * @LastEditTime: 2022-08-14 00:29:44
+ * @LastEditTime: 2023-02-13 22:15:49
  */
 const db = require('../db/mysql/base')
 
 // 常量
 // 日志类型
 const LOG_TYPE = {
-    API: "api"
+    API: "api",
+    REDIS: "redis"
 }
 // 日志表名
 const LOG_TABLE = 'log';
@@ -98,6 +99,7 @@ let queryAllLog = function () {
 
 module.exports = {
     addLog,
+    saveLog,
     queryLogById,
     queryLogByType,
     queryAllLog,
