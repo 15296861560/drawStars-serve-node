@@ -3,8 +3,8 @@
  * @Version: 2.0
  * @Autor: lgy
  * @Date: 2022-07-24 23:40:49
- * @LastEditors: lgy
- * @LastEditTime: 2022-08-14 21:29:05
+ * @LastEditors: “lgy lgy-lgy@qq.com
+ * @LastEditTime: 2023-04-09 16:15:49
  */
 const {
     getAppInfo
@@ -17,6 +17,7 @@ let appID = "";
 let appCertificate = "";
 let Token = null;
 const appName = "draw_stars"
+const isOpenTokenVerify = false;
 
 getAppInfo(appName).then(appInfo => {
     if (appInfo && appInfo.app_id && appInfo.app_certificate) {
@@ -27,19 +28,21 @@ getAppInfo(appName).then(appInfo => {
 });
 
 let verifyToken = function (token) {
+    let result =false;
     try {
         let tokenInfo = JSON.parse(Token.decryption(token) || '{}');
+        result=tokenInfo;
         if (tokenInfo.appID !== appID) {
-            return false;
+            result=false;
         }
         if (tokenInfo.expireTimestamp < new Date()) {
-            return false;
+            result=false;
         }
     } catch (e) {
-        return false;
+        console.log(e)
+        result=false;
     }
-
-    return true;
+    return result;
 
 }
 
@@ -59,7 +62,7 @@ let tokenVerify = function (req, res, next) {
     } else {
         let token = req.headers.accesstoken
 
-        if (!token || !verifyToken(token)) {
+        if (isOpenTokenVerify && (!token || !verifyToken(token))) {
             res.status(200).json({
                 "status": false,
                 "msg": "token验证未通过",
@@ -72,4 +75,4 @@ let tokenVerify = function (req, res, next) {
 
 }
 
-module.exports = tokenVerify;
+module.exports = {tokenVerify,verifyToken};

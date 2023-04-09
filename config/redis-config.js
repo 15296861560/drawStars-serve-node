@@ -1,5 +1,6 @@
 const redis = require('redis')
-const port = 6379;
+const config = require('./publish-config')
+const port = config['redis_port'];
 const ip = '127.0.0.1';
 const Log = require("../public/provider/log.js")
 

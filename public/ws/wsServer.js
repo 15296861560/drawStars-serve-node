@@ -3,11 +3,12 @@
  * @Version: 2.0
  * @Autor: lgy
  * @Date: 2022-10-28 23:36:35
- * @LastEditors: lgy
- * @LastEditTime: 2022-10-29 18:54:12
+ * @LastEditors: “lgy lgy-lgy@qq.com
+ * @LastEditTime: 2023-04-09 15:51:58
  */
 const WebSocket = require('ws')
-const port = 8020;
+const config = require('../../config/publish-config')
+const port = config['ws_port'] 
 
 const ws = new WebSocket.Server({
     port

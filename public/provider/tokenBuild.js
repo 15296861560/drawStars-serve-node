@@ -3,8 +3,8 @@
  * @Version: 2.0
  * @Autor: lgy
  * @Date: 2022-07-27 22:44:24
- * @LastEditors: lgy
- * @LastEditTime: 2022-08-07 16:12:58
+ * @LastEditors: “lgy lgy-lgy@qq.com
+ * @LastEditTime: 2023-04-06 00:02:50
  */
 let crypto = require('crypto');
 let randomInt = Math.floor(Math.random() * 0xFFFFFFFF);
@@ -28,6 +28,8 @@ let AccessToken = function (appID, appCertificate, uid = 0, expireTime = 24 * 60
 
     this.build = function (uid) {
         this.uid = uid;
+        this.createTime = new Date().getTime();
+        this.expireTimestamp = this.createTime + expireTime;
         return this.encryption(JSON.stringify(token));
     }
     /**

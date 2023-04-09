@@ -3,8 +3,8 @@
  * @Version: 2.0
  * @Autor: lgy
  * @Date: 2022-08-07 22:19:24
- * @LastEditors: lgy
- * @LastEditTime: 2023-02-13 22:15:49
+ * @LastEditors: “lgy lgy-lgy@qq.com
+ * @LastEditTime: 2023-04-09 16:23:40
  */
 const db = require('../db/mysql/base')
 
@@ -60,15 +60,15 @@ let addLog = function (type, hostname, originalUrl, content) {
     records.push(saveData)
 }
 
-let batchSaveLogs = async function (records) {
+let batchSaveLogs = async function (logRecords) {
     let datas = [];
-    records.forEach(record => {
+    logRecords.forEach(record => {
         datas.push(Object.values(record))
     });
     db.batchInsertData(LOG_TABLE, TABLE_KEYS, datas, (e, r) => {
         console.log(e)
     })
-    records.length = 0;
+    logRecords.length = 0;
 
 }
 
@@ -76,6 +76,10 @@ let saveLog = function (saveData) {
     db.insertData(LOG_TABLE, saveData, (e, r) => {
         console.log(e)
     })
+}
+
+let clearLog = function () {
+    batchSaveLogs(records)
 }
 
 let queryLogById = function (log_id) {
@@ -100,6 +104,7 @@ let queryAllLog = function () {
 module.exports = {
     addLog,
     saveLog,
+    clearLog,
     queryLogById,
     queryLogByType,
     queryAllLog,

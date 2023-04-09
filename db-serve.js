@@ -3,12 +3,12 @@
  * @Version: 2.0
  * @Autor: lgy
  * @Date: 2022-05-23 21:06:25
- * @LastEditors: lgy
- * @LastEditTime: 2023-02-13 22:30:03
+ * @LastEditors: “lgy lgy-lgy@qq.com
+ * @LastEditTime: 2023-04-05 23:00:13
  */
 const express = require('express')
-const port = 8010 //发布端口
-// const port = 8011; //本地测试端口
+const config = require('./config/publish-config')
+const port = config['serve_port'] //发布端口
 
 
 const server = express()
@@ -22,10 +22,11 @@ const payApi = require('./routers/pay-api')
 const resourceApi = require('./routers/resource-api')
 const profileApi = require('./routers/profile-api')
 const loginApi = require('./routers/login-api')
-const tokenVerify = require('./public/provider/tokenVerify')
+const tokenVerify = require('./public/provider/tokenVerify').tokenVerify
 
 
 require('./public/ws/wsServer')
+require('./public/ws/notifyServer')
 require('./config/redis-config.js');
 
 

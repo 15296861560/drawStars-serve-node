@@ -3,8 +3,8 @@
  * @Version: 2.0
  * @Autor: lgy
  * @Date: 2022-07-24 23:40:49
- * @LastEditors: lgy
- * @LastEditTime: 2022-11-09 23:18:49
+ * @LastEditors: “lgy lgy-lgy@qq.com
+ * @LastEditTime: 2023-04-05 23:44:22
  */
 const express = require('express')
 const router = express.Router()
@@ -39,23 +39,6 @@ router.use(function timeLog(req, res, next) {
 let setToken = function (userInfo, req) {
   let token = Token.build(userInfo.id)
   userInfo.token = token;
-}
-
-let verifyToken = function (token) {
-  try {
-    let tokenInfo = Token.decryption(token);
-    if (tokenInfo.appID !== appID) {
-      return false;
-    }
-    if (tokenInfo.expireTimestamp < new Date()) {
-      return false;
-    }
-  } catch (e) {
-    return false;
-  }
-
-  return true;
-
 }
 
 function queryUserByPhone(phone) {
