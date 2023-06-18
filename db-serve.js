@@ -4,7 +4,7 @@
  * @Autor: lgy
  * @Date: 2022-05-23 21:06:25
  * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-04-05 23:00:13
+ * @LastEditTime: 2023-04-16 18:05:03
  */
 const express = require('express')
 const config = require('./config/publish-config')
@@ -22,6 +22,7 @@ const payApi = require('./routers/pay-api')
 const resourceApi = require('./routers/resource-api')
 const profileApi = require('./routers/profile-api')
 const loginApi = require('./routers/login-api')
+const notifyApi = require('./routers/notify-api')
 const tokenVerify = require('./public/provider/tokenVerify').tokenVerify
 
 
@@ -56,6 +57,7 @@ server.use('/payApi', payApi)
 server.use('/resourceApi', resourceApi)
 server.use('/profileApi', profileApi)
 server.use('/loginApi', loginApi)
+server.use('/notifyApi', notifyApi)
 
 
 server.listen(port)
