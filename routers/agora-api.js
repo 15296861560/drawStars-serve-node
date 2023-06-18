@@ -132,6 +132,15 @@ router.get('/getTest', function (req, res) {
   res.send('GET请求返回数据');
 });
 
+router.get('/getAppID', function (req, res) {
+  const result = {
+    "status": true,
+    "msg": 'success',
+    "data": appID
+  }
+  res.send(result);
+});
+
 
 router.post('/getRTMToken', function (req, res) {
   const account = req.body.account;
@@ -144,8 +153,6 @@ router.post('/getRTMToken', function (req, res) {
 
 
 router.post('/getRTCToken', function (req, res) {
-  debugger
-  //number or string
   const uidOrAccount = req.body.user;
 
   const channelName = req.body.channelName;
