@@ -4,7 +4,7 @@
  * @Autor: lgy
  * @Date: 2022-05-23 21:06:25
  * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-04-16 18:05:03
+ * @LastEditTime: 2023-06-20 23:48:25
  */
 const express = require('express')
 const config = require('./config/publish-config')
@@ -23,6 +23,7 @@ const resourceApi = require('./routers/resource-api')
 const profileApi = require('./routers/profile-api')
 const loginApi = require('./routers/login-api')
 const notifyApi = require('./routers/notify-api')
+const baiduApi = require('./routers/baidu-api')
 const tokenVerify = require('./public/provider/tokenVerify').tokenVerify
 
 
@@ -58,6 +59,7 @@ server.use('/resourceApi', resourceApi)
 server.use('/profileApi', profileApi)
 server.use('/loginApi', loginApi)
 server.use('/notifyApi', notifyApi)
+server.use('/baiduApi', baiduApi)
 
 
 server.listen(port)
