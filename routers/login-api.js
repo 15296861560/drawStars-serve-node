@@ -4,28 +4,11 @@
  * @Autor: lgy
  * @Date: 2022-07-24 23:40:49
  * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-04-05 23:44:22
+ * @LastEditTime: 2023-07-02 01:55:17
  */
+const userService = require('../public/service/userService.js');
 const express = require('express')
 const router = express.Router()
-const db = require('../public/db/mysql/base')
-const AccessToken = require("../public/provider/tokenBuild").AccessToken
-const {
-  getAppInfo
-} = require('../public/db/mysql/commom-api')
-
-
-let appID = "";
-let appCertificate = "";
-let Token = null;
-const appName = "draw_stars"
-getAppInfo(appName).then(appInfo => {
-  if (appInfo && appInfo.app_id && appInfo.app_certificate) {
-    appID = appInfo.app_id;
-    appCertificate = appInfo.app_certificate;
-    Token = new AccessToken(appID, appCertificate)
-  }
-});
 
 // 该路由使用的中间件
 router.use(function timeLog(req, res, next) {
@@ -35,51 +18,23 @@ router.use(function timeLog(req, res, next) {
   next();
 });
 
-// 生成并设置token
-let setToken = function (userInfo, req) {
-  let token = Token.build(userInfo.id)
-  userInfo.token = token;
-}
-
-function queryUserByPhone(phone) {
-  return new Promise((resolve, reject) => {
-    let values = [phone];
-    db.selectData('select * from user where phone = ?', values, (e, r) => {
-      e && reject(e)
-
-      if (r.length !== 0) {
-        resolve(r[0]);
-      } else {
-        resolve(null);
-      }
-    })
-  })
-}
-
 // 登录接口，并且验证密码
 router.post('/loginByPassword', async function (req, res) {
-  let phone = req.body.phone;
-  let password = req.body.password;
+  const phone = req.body.phone;
+  const password = req.body.password;
 
   let message,
     status,
     resultData;
 
   try {
-    let userInfo = await queryUserByPhone(phone);
-    if (!userInfo) {
-      message = "账号不存在";
-    } else if (password !== userInfo.password) {
-      message = "密码错误";
-    } else {
-      message = '登录成功'
-      status = true;
-      resultData = userInfo;
-      setToken(resultData, req);
-    }
+    let userInfo = await userService.loginByPassword(phone, password);
+    message = '登录成功'
+    status = true;
+    resultData = userInfo;
 
   } catch (e) {
-    message = "登录失败"
+    message = e
     status = false;
     resultData = e;
   }
@@ -93,57 +48,33 @@ router.post('/loginByPassword', async function (req, res) {
 // 注册接口
 router.post('/registerByPhone', async (req, res) => {
   let nowDate = new Date().getTime();
-  let phone = req.body.phone;
   let saveData = {
     "name": req.body.name,
     "password": req.body.password,
-    "phone": phone,
+    "phone": req.body.phone,
     "createTime": nowDate,
     "updateTime": nowDate,
     "level": 1,
   };
+  let resultData = saveData;
 
   let message = '注册成功',
     status = true;
   try {
-    let hasUser = await queryUserByPhone(phone);
-    if (hasUser) {
-      message = "注册失败,该手机号已注册";
-      res.status(200).json({
-        "status": false,
-        "msg": message,
-        "data": null
-      });
-      return;
-    }
+    await userService.registerByPhone(saveData);
+    userService.setToken(resultData, req);
 
   } catch (e) {
-    res.status(200).json({
-      "status": false,
-      "msg": e,
-      "data": null
-    });
-    return;
+    status = false;
+    message = `注册失败:${e?.toString()}`;
+    resultData = e;
   }
 
-
-
-  db.insertData('user', saveData, async (e, r) => {
-    let userInfo = await queryUserByPhone(phone);
-    resultData = userInfo;
-    if (e) {
-      message = "注册失败"
-      status = false;
-      resultData = e;
-    } else {
-      setToken(resultData, req);
-    }
-    res.status(200).json({
-      "status": status,
-      "msg": message,
-      "data": resultData
-    });
-  })
+  res.status(200).json({
+    "status": status,
+    "msg": message,
+    "data": resultData
+  });
 })
 
 module.exports = router;
