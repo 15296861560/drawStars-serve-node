@@ -21,7 +21,7 @@ router.use(function timeLog(req, res, next) {
 });
 
 router.get('/queryNotifyById', async function (req, res) {
-  let notifyId = req.body.notifyId;
+  let notifyId = req.query.notifyId;
   let resultData = await Notify.queryNotifyById(notifyId);
 
   let result = {
@@ -33,7 +33,7 @@ router.get('/queryNotifyById', async function (req, res) {
 });
 router.get('/queryNotifyByType', async function (req, res) {
 
-  let notifyType = req.body.notifyType;
+  let notifyType = req.query.notifyType;
   let resultData = await Notify.queryNotifyByType(notifyType);
 
   let result = {
@@ -44,8 +44,8 @@ router.get('/queryNotifyByType', async function (req, res) {
   res.send(result);
 });
 router.get('/queryMyNotifyByType', async function (req, res) {
-  let notifyType = req.body.notifyType;
-  let userId = req.body.userId;
+  let notifyType = req.query.notifyType;
+  let userId = req.query.userId;
   let resultData = await Notify.queryMyNotifyByType(notifyType, userId);
 
   let result = {
@@ -67,7 +67,7 @@ router.get('/queryAllNotify', async function (req, res) {
   res.send(result);
 });
 router.get('/queryMyAllNotify', async function (req, res) {
-  let userId = req.body.userId;
+  let userId = req.query.userId;
   let resultData = await Notify.queryMyAllNotify(userId);
 
   let result = {
