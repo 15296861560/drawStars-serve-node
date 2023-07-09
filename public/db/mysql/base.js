@@ -3,8 +3,8 @@
  * @Version: 2.0
  * @Autor: lgy
  * @Date: 2022-05-23 21:08:51
- * @LastEditors: lgy
- * @LastEditTime: 2022-08-14 00:28:12
+ * @LastEditors: “lgy lgy-lgy@qq.com
+ * @LastEditTime: 2023-07-04 22:45:04
  */
 const conn = require('../../../config/mysql-config.js');
 const connection = conn();
@@ -53,6 +53,15 @@ let insertData = (table, datas, callback) => {
   questions = questions.slice(0, -1);
   let sql = "INSERT INTO " + table + '(' + fields + ') VALUES(' + questions + ')';
   connection.query(sql, values, callback);
+
+}
+// 获取刚插入数据的id
+let getInsertId = function () {
+  return new Promise((resolve, reject) => {
+    connection.query("SELECT LAST_INSERT_ID()", [], (e, r) => {
+      e ? reject(e) : resolve(r[0]['LAST_INSERT_ID()']);
+    });
+  })
 }
 // 更新一条数据
 /**
@@ -139,6 +148,7 @@ let batchInsertData = (table, keys, datas, callback) => {
 module.exports = {
   selectData,
   insertData,
+  getInsertId,
   deleteData,
   updateData,
   batchInsertData

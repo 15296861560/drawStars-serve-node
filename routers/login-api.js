@@ -4,9 +4,10 @@
  * @Autor: lgy
  * @Date: 2022-07-24 23:40:49
  * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-07-02 01:55:17
+ * @LastEditTime: 2023-07-09 22:54:02
  */
 const userService = require('../public/service/userService.js');
+const githubProvider = require('../public/provider/oauth/githubProvider.js');
 const express = require('express')
 const router = express.Router()
 
@@ -61,8 +62,9 @@ router.post('/registerByPhone', async (req, res) => {
   let message = '注册成功',
     status = true;
   try {
-    await userService.registerByPhone(saveData);
-    userService.setToken(resultData, req);
+    const userId = await userService.registerByPhone(saveData);
+    saveData.id = userId;
+    userService.setToken(saveData);
 
   } catch (e) {
     status = false;
@@ -75,6 +77,100 @@ router.post('/registerByPhone', async (req, res) => {
     "msg": message,
     "data": resultData
   });
+})
+
+// 查询自己的用户信息
+router.get('/verifyLogin', async (req, res) => {
+  let message = 'ok',
+    status = true,
+    resultData = null;
+  try {
+    let token = req.headers.accessToken;
+    if (!token && req.query.accessToken) {
+      token = decodeURIComponent(req.query.accessToken);
+    }
+
+    if (!token) {
+      // 获取原始Cookie字符串（如果有的话）
+      const cookies = req.headers.cookie;
+
+      // 解析Cookie字符串为对象
+      const parsedCookies = cookies ? cookies.split('; ').reduce((acc, cookie) => {
+        const [key, value] = cookie.split('=');
+        return {
+          ...acc,
+          [key]: value
+        };
+      }, {}) : {};
+
+      token = parsedCookies?.accessToken;
+      if (!token) {
+        throw ("fail")
+      }
+    }
+    resultData = await userService.verifyLogin(token);
+  } catch (e) {
+    status = false;
+    message = "fail";
+    resultData = e;
+  }
+
+  res.send({
+    "status": status,
+    "msg": message,
+    "data": resultData
+  });
+})
+
+
+// 第三方自动登录
+router.get('/oauthLogin/github', async (req, res) => {
+  const {
+    code,
+    state
+  } = req.query;
+
+  let message = '注册成功',
+    status = true,
+    resultData = {};
+  try {
+
+    const accessToken = await githubProvider.getAccessToken(code, state);
+    const githubUserInfo = await githubProvider.queryGithubUserInfo(accessToken);
+
+    let oauthInfo = await userService.queryByOauth(githubUserInfo.id);
+    const nowDate = new Date().getTime();
+    resultData = {
+      name: githubUserInfo.login,
+      phone: githubUserInfo.login,
+      createTime: nowDate,
+      updateTime: nowDate,
+      level: 1,
+      avatar: githubUserInfo.avatar_url
+    };
+    if (!oauthInfo) {
+      oauthInfo = await userService.registerByOauth(resultData, "github", githubUserInfo.id);
+    } else {
+      oauthInfo.userId = oauthInfo.user_id;
+    }
+
+    resultData.id = oauthInfo.userId;
+
+    userService.setToken(resultData);
+
+
+  } catch (e) {
+    status = false;
+    message = `登录失败:${e?.toString()}`;
+    resultData = e;
+    return;
+  }
+
+  const returnUrl = `${req.headers.referer}login?accessToken=${encodeURIComponent(resultData.token)}`;
+
+  req.headers.accessToken = resultData.token;
+  res.redirect(returnUrl);
+
 })
 
 module.exports = router;

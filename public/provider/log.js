@@ -4,7 +4,7 @@
  * @Autor: lgy
  * @Date: 2022-08-07 22:19:24
  * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-04-09 16:23:40
+ * @LastEditTime: 2023-07-02 16:20:20
  */
 const db = require('../db/mysql/base')
 
@@ -12,7 +12,8 @@ const db = require('../db/mysql/base')
 // 日志类型
 const LOG_TYPE = {
     API: "api",
-    REDIS: "redis"
+    REDIS: "redis",
+    OPERATE: "operate"
 }
 // 日志表名
 const LOG_TABLE = 'log';
@@ -22,6 +23,10 @@ const TABLE_KEYS = ['log_type', 'hostname', 'originalUrl', 'createTime', 'conten
 const MAX_LOG = 100;
 // 自动保存日志的时间,单位毫秒
 const SAVE_LOG_TIME = 60 * 1000;
+// 类型长度限制
+const TYPE_MAX_LENGTH = 32;
+// 地址长度限制
+const URL_MAX_LENGTH = 255;
 
 // 变量
 
@@ -48,12 +53,12 @@ setInterval(() => {
 }, SAVE_LOG_TIME)
 
 
-let addLog = function (type, hostname, originalUrl, content) {
+let addLog = function (type, hostname = "", originalUrl = "", content) {
     let nowDate = new Date().getTime();
     let saveData = {
-        "log_type": type,
-        hostname,
-        originalUrl,
+        "log_type": type.slice(0, TYPE_MAX_LENGTH),
+        hostname: hostname.slice(0, URL_MAX_LENGTH),
+        originalUrl: originalUrl.slice(0, URL_MAX_LENGTH),
         "createTime": nowDate,
         content: JSON.stringify(content)
     };

@@ -4,11 +4,13 @@
  * @Autor: lgy
  * @Date: 2022-05-23 21:06:25
  * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-06-20 23:48:25
+ * @LastEditTime: 2023-07-09 23:23:26
  */
 const express = require('express')
 const config = require('./config/publish-config')
 const port = config['serve_port'] //发布端口
+
+require('./public/utils/axios/axios-config.js');
 
 
 const server = express()
