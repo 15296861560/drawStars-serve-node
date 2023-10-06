@@ -4,7 +4,7 @@
  * @Autor: lgy
  * @Date: 2023-06-28 23:17:13
  * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-07-09 22:56:29
+ * @LastEditTime: 2023-10-06 23:22:00
  * @Author: “lgy lgy-lgy@qq.com
  * @FilePath: \drawStars-serve-node\public\service\userService.js
  * 
@@ -15,7 +15,11 @@ const Log = require("../provider/log");
 const AccessToken = require("../provider/tokenBuild").AccessToken;
 const {
     getAppInfo
-} = require('../db/mysql/commom-api')
+} = require('../db/mysql/commom-api');
+
+const zhenzismsClient = require('../provider/sms/zhenzismsProvider.js');
+
+const userRedisClient = require('../db/redis/client')
 
 const USER_TABLE_NAME = 'user';
 const OAUTH_TABLE_NAME = 'oauth_info';
@@ -194,6 +198,62 @@ class UserService {
         } = tokenInfo;
         const userInfo = await this.queryUserById(uid);
 
+        return userInfo;
+    }
+
+    // 获取验证码
+    async getCaptcha(phone, type = 'login') {
+        try {
+            const params = {};
+            const code = String(Math.floor(Math.random() * 8999) + 1000);
+            const expireMins = 2;
+            const expireSeconds = expireMins * 60;
+            const redisKey = `${type}-${phone}`;
+            if (await redisClient.exists(redisKey)) {
+                throw ('验证码未过期，请稍后重试');
+            }
+            userRedisClient.set(redisKey, code);
+            redisClient.expire(redisKey, expireSeconds)
+            params.number = phone;
+            params.templateParams = [code, `${expireMins}分钟`];
+            const res = await zhenzismsClient.send(params);
+            if (res.code === 0) {
+                return true;
+            } else {
+                throw (res.data);
+            }
+
+        } catch (e) {
+            const content = {
+                method: 'getCaptcha',
+                result: e
+            };
+            Log.addLog(Log.LOG_TYPE.API, BACKEND, BACKEND, content);
+            throw (e);
+        }
+
+    }
+
+    // 验证验证码
+    async verifyCaptcha(phone, captcha, type = 'login') {
+        const redisKey = `${type}-${phone}`;
+        const code = redisClient.get(redisKey);
+        const flag = captcha == code;
+        return flag;
+    }
+
+
+    async smsLogin(phone, captcha) {
+        if (!this.verifyCaptcha(phone, captcha)) {
+            throw ("验证码错误");
+        }
+        let userInfo = await this.queryUserByPhone(phone);
+
+        if (!userInfo) {
+            throw ("账号不存在");
+        }
+
+        this.setToken(userInfo);
         return userInfo;
     }
 

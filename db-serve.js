@@ -11,7 +11,9 @@ const config = require('./config/publish-config')
 const port = config['serve_port'] //发布端口
 
 require('./public/utils/axios/axios-config.js');
-
+require('./public/ws/wsServer')
+require('./public/ws/notifyServer')
+require('./config/redis-config.js');
 
 const server = express()
 // 我的基础路由文件.
@@ -29,9 +31,7 @@ const baiduApi = require('./routers/baidu-api')
 const tokenVerify = require('./public/provider/tokenVerify').tokenVerify
 
 
-require('./public/ws/wsServer')
-require('./public/ws/notifyServer')
-require('./config/redis-config.js');
+
 
 
 // json 解析 

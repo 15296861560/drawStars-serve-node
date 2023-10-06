@@ -4,7 +4,7 @@
  * @Autor: lgy
  * @Date: 2022-07-24 23:40:49
  * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-07-09 22:54:02
+ * @LastEditTime: 2023-10-06 21:55:18
  */
 const userService = require('../public/service/userService.js');
 const githubProvider = require('../public/provider/oauth/githubProvider.js');
@@ -19,7 +19,7 @@ router.use(function timeLog(req, res, next) {
   next();
 });
 
-// 登录接口，并且验证密码
+// 登录接口
 router.post('/loginByPassword', async function (req, res) {
   const phone = req.body.phone;
   const password = req.body.password;
@@ -46,6 +46,34 @@ router.post('/loginByPassword', async function (req, res) {
   });
 
 });
+
+router.post('/loginBySMS', async function (req, res) {
+  const phone = req.body.phone;
+  const captcha = req.body.captcha;
+
+  let message,
+    status,
+    resultData;
+
+  try {
+    let userInfo = await userService.smsLogin(phone, captcha);
+    message = '登录成功'
+    status = true;
+    resultData = userInfo;
+
+  } catch (e) {
+    message = e
+    status = false;
+    resultData = e;
+  }
+  res.status(200).json({
+    "status": status,
+    "msg": message,
+    "data": resultData
+  });
+
+});
+
 // 注册接口
 router.post('/registerByPhone', async (req, res) => {
   let nowDate = new Date().getTime();
@@ -171,6 +199,31 @@ router.get('/oauthLogin/github', async (req, res) => {
   req.headers.accessToken = resultData.token;
   res.redirect(returnUrl);
 
+})
+
+// 获取验证码
+router.get('/getCaptcha', async (req, res) => {
+  let message = 'ok',
+    status = true,
+    resultData = null;
+
+  const {
+    type,
+    account
+  } = req.query;
+
+  try {
+    status = await userService.getCaptcha(account, type);
+  } catch (e) {
+    message = e;
+  }
+
+
+  res.send({
+    "status": status,
+    "msg": message,
+    "data": resultData
+  });
 })
 
 module.exports = router;
