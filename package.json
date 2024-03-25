@@ -5,7 +5,8 @@
   "author": "lgy <lgy-lgy@qq.com>",
   "private": true,
   "scripts": {
-    "serve": "node db-serve.js"
+    "dev": "node db-serve.js",
+    "serve": "set NODE_ENV=production && node db-serve.js"
   },
   "dependencies": {
     "agora-rtc-sdk": "^2.8.0",
