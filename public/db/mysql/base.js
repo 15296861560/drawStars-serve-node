@@ -6,8 +6,7 @@
  * @LastEditors: “lgy lgy-lgy@qq.com
  * @LastEditTime: 2023-07-04 22:45:04
  */
-const conn = require('../../../config/mysql-config.js');
-const connection = conn();
+const connection = require('../../../config/mysql-config.js');
 
 // 查询所有数据
 /**

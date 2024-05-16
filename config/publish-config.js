@@ -13,7 +13,13 @@
 
 // 本地调试配置
 const dev_config = {
-    mysql_port: 3306,
+    mysql: {
+        host: 'localhost',
+        port: 3306,
+        user: 'drawStars',
+        password: 'Admin_123',
+        database: 'draw_stars',
+    },
     redis_port: 6379,
     serve_port: 8011, //8010 发布端口,8011本地测试端口
     ws_port: 8021, //8020、8021
@@ -23,7 +29,13 @@ const dev_config = {
 
 // 发布配置
 const release_config = {
-    mysql_port: 3306,
+    mysql: {
+        host: 'localhost',
+        port: 3306,
+        user: 'drawStars',
+        password: 'Admin_123',
+        database: 'draw_stars',
+    },
     redis_port: 6379,
     serve_port: 8010, //8010 发布端口,8011本地测试端口
     ws_port: 8020, //8020、8021
