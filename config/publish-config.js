@@ -11,6 +11,8 @@
  * Copyright (c) 2023 by ${git_name_email}, All Rights Reserved. 
  */
 
+const path = require('path');
+
 // 本地调试配置
 const dev_config = {
     mysql: {
@@ -24,6 +26,7 @@ const dev_config = {
     serve_port: 8011, //8010 发布端口,8011本地测试端口
     ws_port: 8021, //8020、8021
     notify_port: 8031, //8030、8031、8032
+    uploadDir: path.join(__dirname, '../uploadDir'), // 上传文件路径
 }
 
 

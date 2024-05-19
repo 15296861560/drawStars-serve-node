@@ -12,6 +12,10 @@ const path = require("path");
 const fs = require("fs");
 const util = require('util');
 const child_process = require('child_process');
+const { Formidable } = require('formidable');
+
+const config = require('../config/publish-config')
+
 
 
 // 获取初始模板信息
@@ -133,5 +137,100 @@ router.post('/compressCode', async function (req, res) {
   });
 
 });
+
+// 处理上传文件服务
+router.post('/upload', (req, res) => {
+  const options = {
+    uploadDir: config.uploadDir,// 设置文件上传目录
+    keepExtensions: true, // 保持文件的后缀
+    maxFieldsSize: 10 * 1024 * 1024, // 文件上传大小限制
+    onFileBegin: (name, file) => { // 文件上传前的设置
+      console.log(`name: ${name}`);
+      // console.log(file);
+    }
+  }
+
+  const form = new Formidable(options)
+  let newName = ''
+  try {
+    form.parse(req, (err, fielads, files) => {
+      // console.log("fielads", fielads);
+      // console.log("files", files);
+      const orgName = fielads.filename[0];
+      // let extname = path.extname(orgName);
+      const oldpath = files.file[0].filepath
+      newName = `${new Date().getTime()}_${orgName}`
+      const newpath = path.join(config.uploadDir, newName);
+
+      fs.rename(oldpath, newpath, function (err) {
+        if (err) {
+          throw Error("改名失败");
+        }
+      });
+      if (err) {
+        console.error('Error', err)
+        throw err
+      }
+    });
+    // form.on('progress', (bytesReceived, bytesExpected) => {
+    //   console.log("收到的字节数" + bytesReceived);
+    //   console.log("预期字节数" + bytesExpected);
+    // });
+    // form.on('field', (name, value) => {
+    //   console.log(name + " = " + value);
+    // });
+    // form.on('fileBegin', (name, file) => {
+    //   console.log(name + " = ", file);
+    // });
+    // form.on('file', (name, file) => {
+    //   console.log(name + " = ", file);
+    // });
+
+  } catch (e) {
+    res.status(200).json({
+      "status": false,
+      "data": e
+    });
+  }
+  form.on('end', () => {
+    console.log('结束解析');
+    res.status(200).json({
+      "status": true,
+      "data": '上传成功'
+    });
+  });
+
+});
+
+
+
+/**
+ * 下载文件
+ */
+const downloadFile = (pathUrl, res) => {
+
+  const readStream = fs.createReadStream(pathUrl);
+
+  const stats = fs.statSync(pathUrl);
+
+  const filename = path.basename(pathUrl);
+
+  res.writeHead(200, {
+    'Content-Type': 'application/octet-stream', //告诉浏览器这是一个二进制文件
+    'Content-Disposition': 'attachment; filename=' + filename, //告诉浏览器这是一个需要下载的文件
+    'Content-Length': stats.size
+  });
+
+  readStream.pipe(res);
+
+}
+
+router.get('/download', function (req, res) {
+  const filename = req.query.filename
+  const pathUrl = path.join(config.uploadDir, filename)
+  downloadFile(pathUrl, res)
+});
+
+
 
 module.exports = router;

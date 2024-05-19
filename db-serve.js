@@ -49,7 +49,7 @@ server.all('*', function (req, res, next) {
   next();
 });
 // 暴露公共资源
-server.use(express.static('public'))
+server.use(express.static('uploadDir'))
 server.use(tokenVerify)
 server.use('/mysqlApi', mysqlApi)
 server.use('/testApi', testApi)
