@@ -3,8 +3,8 @@
  * @Version: 2.0
  * @Autor: lgy
  * @Date: 2022-05-23 21:08:51
- * @LastEditors: lgy
- * @LastEditTime: 2022-09-29 23:31:41
+ * @LastEditors: “lgy lgy-lgy@qq.com
+ * @LastEditTime: 2024-05-19 22:59:21
  */
 const express = require('express');
 const router = express.Router();
@@ -187,7 +187,7 @@ router.post('/upload', (req, res) => {
     // });
 
   } catch (e) {
-    res.status(200).json({
+    res.status(500).json({
       "status": false,
       "data": e
     });
@@ -196,7 +196,7 @@ router.post('/upload', (req, res) => {
     console.log('结束解析');
     res.status(200).json({
       "status": true,
-      "data": '上传成功'
+      "data": { url: `/${newName}`, msg: '上传成功' }
     });
   });
 
