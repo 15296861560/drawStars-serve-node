@@ -66,4 +66,8 @@ server.use('/baiduApi', baiduApi)
 
 server.listen(port)
 
+process.on('uncaughtException', function (err) {
+  console.log('uncaughtException', typeof err === 'string' ? err : JSON.stringify(err));
+});
+
 console.log(`server run port ${port}`)
