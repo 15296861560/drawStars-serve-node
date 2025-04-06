@@ -1,6 +1,6 @@
-const LoginLog = require('../models/login-log')
-const OperationLog = require('../models/operation-log')
-const BusinessLog = require('../models/business-log')
+const LoginLog = require('../provider/log/login-log')
+const OperationLog = require('../provider/log/operation-log')
+const BusinessLog = require('../provider/log/business-log')
 const excel = require('exceljs')
 
 class LogService {

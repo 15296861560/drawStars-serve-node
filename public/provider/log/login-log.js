@@ -1,4 +1,4 @@
-const db = require('../public/db/mysql/base')
+const db = require('../../db/mysql/base')
 
 class LoginLog {
   static async find(query) {

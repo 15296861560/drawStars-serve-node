@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const LogService = require('../services/log-service')
+const LogService = require('../public/service/log-service')
 
 // 日志中间件
 router.use((req, res, next) => {
