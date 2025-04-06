@@ -1,11 +1,3 @@
-/*
- * @Description: 
- * @Version: 2.0
- * @Autor: lgy
- * @Date: 2022-05-23 21:06:25
- * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-07-09 23:23:26
- */
 const express = require('express')
 const config = require('./config/publish-config')
 const port = config['serve_port'] //发布端口
@@ -28,6 +20,7 @@ const profileApi = require('./routers/profile-api')
 const loginApi = require('./routers/login-api')
 const notifyApi = require('./routers/notify-api')
 const baiduApi = require('./routers/baidu-api')
+const logApi = require('./routers/log-api')
 const tokenVerify = require('./public/provider/tokenVerify').tokenVerify
 
 
@@ -62,6 +55,7 @@ server.use('/profileApi', profileApi)
 server.use('/loginApi', loginApi)
 server.use('/notifyApi', notifyApi)
 server.use('/baiduApi', baiduApi)
+server.use('/logApi', logApi)
 
 
 server.listen(port)

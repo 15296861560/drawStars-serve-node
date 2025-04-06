@@ -13,7 +13,7 @@ const db = require('../db/mysql/base')
 const LOG_TYPE = {
     API: "api",
     REDIS: "redis",
-    OPERATE: "operate"
+    OPERATE: "operate",
 }
 // 日志表名
 const LOG_TABLE = 'log';
