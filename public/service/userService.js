@@ -1,15 +1,3 @@
-/*
- * @Description: 
- * @Version: 2.0
- * @Autor: lgy
- * @Date: 2023-06-28 23:17:13
- * @LastEditors: “lgy lgy-lgy@qq.com
- * @LastEditTime: 2023-10-06 23:22:00
- * @Author: “lgy lgy-lgy@qq.com
- * @FilePath: \drawStars-serve-node\public\service\userService.js
- * 
- * Copyright (c) 2023 by ${git_name_email}, All Rights Reserved. 
- */
 const db = require('../db/mysql/base');
 const Log = require("../provider/log");
 const AccessToken = require("../provider/tokenBuild").AccessToken;
@@ -23,6 +11,8 @@ const userRedisClient = require('../db/redis/client')
 
 const USER_TABLE_NAME = 'user';
 const OAUTH_TABLE_NAME = 'oauth_info';
+const LoginLog = require('../provider/log/login-log');
+
 const BACKEND = 'backend';
 const APPNAME = "draw_stars";
 const DEFAULT_PASSWORD = "@drawStars123";
@@ -45,6 +35,72 @@ class UserService {
         }
     }
 
+    async recordLoginLog(username, ip, status, details = '') {
+        try {
+            // 获取用户代理字符串
+            const userAgent = global.userAgent || '';
+            
+            // 解析用户代理获取浏览器和操作系统信息
+            let browser = '';
+            let os = '';
+            
+            if (userAgent) {
+                // 简单解析用户代理字符串
+                if (userAgent.includes('Firefox')) {
+                    browser = 'Firefox';
+                } else if (userAgent.includes('Chrome')) {
+                    browser = 'Chrome';
+                } else if (userAgent.includes('Safari')) {
+                    browser = 'Safari';
+                } else if (userAgent.includes('Edge')) {
+                    browser = 'Edge';
+                } else if (userAgent.includes('MSIE') || userAgent.includes('Trident')) {
+                    browser = 'Internet Explorer';
+                } else {
+                    browser = '未知';
+                }
+                
+                if (userAgent.includes('Windows')) {
+                    os = 'Windows';
+                } else if (userAgent.includes('Mac OS')) {
+                    os = 'MacOS';
+                } else if (userAgent.includes('Linux')) {
+                    os = 'Linux';
+                } else if (userAgent.includes('Android')) {
+                    os = 'Android';
+                } else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) {
+                    os = 'iOS';
+                } else {
+                    os = '未知';
+                }
+            }
+            
+            // 获取地理位置信息 - 这里使用简单的IP分析
+            let location = '';
+            if (ip) {
+                if (ip.startsWith('192.168.') || ip.startsWith('10.') || ip === '127.0.0.1') {
+                    location = '内网IP';
+                } else {
+                    // 这里可以接入IP地址库或API进行更精确的地理位置解析
+                    // 目前只做简单分类
+                    location = '外网IP';
+                }
+            }
+            
+            await LoginLog.create({
+                username,
+                ip,
+                location,
+                browser,
+                os,
+                status, // 'success' 或 'fail'
+                details
+            });
+        } catch (error) {
+            console.error('记录登录日志失败:', error);
+            // 登录日志记录失败不影响主流程
+        }
+    }
 
     queryUserByCondition(condition, value) {
         let table = USER_TABLE_NAME;
@@ -105,17 +161,20 @@ class UserService {
         userInfo.token = this.Token.build(userInfo.id);
     }
 
-    async loginByPassword(phone, password) {
+    async loginByPassword(phone, password, ip) {
         let userInfo = await this.queryUserByPhone(phone);
 
         if (!userInfo) {
+            await this.recordLoginLog(phone, ip, 'fail', '账号不存在');
             throw ("账号不存在");
         }
         if (password !== userInfo.password) {
+            await this.recordLoginLog(userInfo.name || phone, ip, 'fail', '密码错误');
             throw ("密码错误");
         }
 
         this.setToken(userInfo);
+        await this.recordLoginLog(userInfo.name || phone, ip, 'success');
         return userInfo;
     }
 
@@ -243,17 +302,20 @@ class UserService {
     }
 
 
-    async smsLogin(phone, captcha) {
+    async smsLogin(phone, captcha, ip) {
         if (!this.verifyCaptcha(phone, captcha)) {
+            await this.recordLoginLog(phone, ip, 'fail', '验证码错误');
             throw ("验证码错误");
         }
         let userInfo = await this.queryUserByPhone(phone);
 
         if (!userInfo) {
+            await this.recordLoginLog(phone, ip, 'fail', '账号不存在');
             throw ("账号不存在");
         }
 
         this.setToken(userInfo);
+        await this.recordLoginLog(userInfo.name || phone, ip, 'success', '短信验证码登录');
         return userInfo;
     }
 

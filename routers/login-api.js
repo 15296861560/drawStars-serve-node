@@ -16,6 +16,10 @@ router.use(function timeLog(req, res, next) {
   console.log('req.hostname  : ', req.hostname);
   console.log('req.originalUrl : ', req.originalUrl);
   console.log('Time: ', new Date());
+  
+  // 存储用户代理信息到全局变量，以便在userService中使用
+  global.userAgent = req.headers['user-agent'] || '';
+  
   next();
 });
 
@@ -23,13 +27,15 @@ router.use(function timeLog(req, res, next) {
 router.post('/loginByPassword', async function (req, res) {
   const phone = req.body.phone;
   const password = req.body.password;
+  // 获取客户端IP地址
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
   let message,
     status,
     resultData;
 
   try {
-    let userInfo = await userService.loginByPassword(phone, password);
+    let userInfo = await userService.loginByPassword(phone, password, ip);
     message = '登录成功'
     status = true;
     resultData = userInfo;
@@ -50,13 +56,15 @@ router.post('/loginByPassword', async function (req, res) {
 router.post('/loginBySMS', async function (req, res) {
   const phone = req.body.phone;
   const captcha = req.body.captcha;
+  // 获取客户端IP地址
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
   let message,
     status,
     resultData;
 
   try {
-    let userInfo = await userService.smsLogin(phone, captcha);
+    let userInfo = await userService.smsLogin(phone, captcha, ip);
     message = '登录成功'
     status = true;
     resultData = userInfo;
@@ -186,6 +194,9 @@ router.get('/oauthLogin/github', async (req, res) => {
 
     userService.setToken(resultData);
 
+    // 记录GitHub第三方登录日志
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    await userService.recordLoginLog(resultData.name, ip, 'success', 'GitHub第三方登录');
 
   } catch (e) {
     status = false;
