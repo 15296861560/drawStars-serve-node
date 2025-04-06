@@ -313,6 +313,40 @@ class LogService {
     }
     return query
   }
+
+  // 添加记录操作日志方法
+  static async addOperationLog(username, operation, method, params, ip, status = 'success', error_msg = '') {
+    try {
+      return await OperationLog.create({
+        username,
+        operation,
+        method,
+        params,
+        ip,
+        status,
+        error_msg
+      });
+    } catch (error) {
+      console.error('添加操作日志失败:', error);
+      throw error;
+    }
+  }
+
+  // 添加记录业务日志方法
+  static async addBusinessLog(module, type, title, content, operator) {
+    try {
+      return await BusinessLog.create({
+        module,
+        type,
+        title,
+        content,
+        operator
+      });
+    } catch (error) {
+      console.error('添加业务日志失败:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = LogService
