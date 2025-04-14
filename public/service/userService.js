@@ -39,11 +39,11 @@ class UserService {
         try {
             // 获取用户代理字符串
             const userAgent = global.userAgent || '';
-            
+
             // 解析用户代理获取浏览器和操作系统信息
             let browser = '';
             let os = '';
-            
+
             if (userAgent) {
                 // 简单解析用户代理字符串
                 if (userAgent.includes('Firefox')) {
@@ -59,7 +59,7 @@ class UserService {
                 } else {
                     browser = '未知';
                 }
-                
+
                 if (userAgent.includes('Windows')) {
                     os = 'Windows';
                 } else if (userAgent.includes('Mac OS')) {
@@ -74,7 +74,7 @@ class UserService {
                     os = '未知';
                 }
             }
-            
+
             // 获取地理位置信息 - 这里使用简单的IP分析
             let location = '';
             if (ip) {
@@ -86,7 +86,7 @@ class UserService {
                     location = '外网IP';
                 }
             }
-            
+
             await LoginLog.create({
                 username,
                 ip,
@@ -158,7 +158,7 @@ class UserService {
     }
 
     setToken(userInfo) {
-        userInfo.token = this.Token.build(userInfo.id);
+        userInfo.token = this.Token.build(userInfo.id, userInfo);
     }
 
     async loginByPassword(phone, password, ip) {

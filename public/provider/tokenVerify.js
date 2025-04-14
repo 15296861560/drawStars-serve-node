@@ -17,7 +17,7 @@ let appID = "";
 let appCertificate = "";
 let Token = null;
 const appName = "draw_stars"
-const isOpenTokenVerify = false;
+const isOpenTokenVerify = true;
 
 getAppInfo(appName).then(appInfo => {
     if (appInfo && appInfo.app_id && appInfo.app_certificate) {
@@ -28,19 +28,19 @@ getAppInfo(appName).then(appInfo => {
 });
 
 let verifyToken = function (token) {
-    let result =false;
+    let result = false;
     try {
         let tokenInfo = JSON.parse(Token.decryption(token) || '{}');
-        result=tokenInfo;
+        result = tokenInfo;
         if (tokenInfo.appID !== appID) {
-            result=false;
+            result = false;
         }
         if (tokenInfo.expireTimestamp < new Date()) {
-            result=false;
+            result = false;
         }
     } catch (e) {
         console.log(e)
-        result=false;
+        result = false;
     }
     return result;
 
@@ -60,9 +60,13 @@ let tokenVerify = function (req, res, next) {
     if (req.originalUrl.startsWith('/loginApi')) {
         next()
     } else {
-        let token = req.headers.accesstoken
+        const token = req.headers.accesstoken
+        const tokenInfo = verifyToken(token)
+        if (!global.userInfo) {
+            global.userInfo = tokenInfo.userInfo
+        }
 
-        if (isOpenTokenVerify && (!token || !verifyToken(token))) {
+        if (isOpenTokenVerify && (!token || !tokenInfo)) {
             res.status(200).json({
                 "status": false,
                 "msg": "token验证未通过",
@@ -75,4 +79,4 @@ let tokenVerify = function (req, res, next) {
 
 }
 
-module.exports = {tokenVerify,verifyToken};
+module.exports = { tokenVerify, verifyToken };

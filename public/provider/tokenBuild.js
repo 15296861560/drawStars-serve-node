@@ -12,7 +12,7 @@ let algorithm = 'aes-128-cbc';
 let clearEncoding = 'utf8';
 let iv = "123abfjsout45678";
 
-let AccessToken = function (appID, appCertificate, uid = 0, expireTime = 24 * 60 * 60 * 1000, level = 0) {
+let AccessToken = function (appID, appCertificate, uid = 0, expireTime = 24 * 60 * 60 * 1000, level = 0, userInfo = {}) {
     let token = this;
     this.appID = appID;
     this.appCertificate = appCertificate; //长度为16
@@ -20,16 +20,19 @@ let AccessToken = function (appID, appCertificate, uid = 0, expireTime = 24 * 60
     this.createTime = new Date().getTime();
     this.expireTimestamp = this.createTime + expireTime;
     this.level = level;
+    this.userInfo = userInfo
     if (uid === 0) {
         this.uid = "";
     } else {
         this.uid = `${uid}`;
     }
 
-    this.build = function (uid) {
+    this.build = function (uid, userInfo = {}) {
         this.uid = uid;
         this.createTime = new Date().getTime();
         this.expireTimestamp = this.createTime + expireTime;
+        this.userInfo = userInfo;
+        global.userInfo = userInfo
         return this.encryption(JSON.stringify(token));
     }
     /**

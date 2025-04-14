@@ -148,19 +148,19 @@ let operationLogMiddleware = function (options = {}) {
         const originalSend = res.send;
         const originalJson = res.json;
         const originalStatus = res.status;
-        
+
         let statusCode = 200;
-        
+
         // 覆盖状态码方法
         res.status = function (code) {
             statusCode = code;
             return originalStatus.apply(res, arguments);
         };
-        
+
         // 覆盖send方法
         res.send = function (body) {
             const operation = options.operation || guessOperation(req.method);
-            const username = (req.user && req.user.username) || 'anonymous';
+            const username = (global.userInfo && global.userInfo.name) || 'anonymous';
             const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
             const method = req.method;
             const params = {
@@ -168,16 +168,16 @@ let operationLogMiddleware = function (options = {}) {
                 query: req.query,
                 url: req.url
             };
-            
+
             const status = statusCode >= 200 && statusCode < 400 ? 'success' : 'fail';
             const error_msg = status === 'fail' ? (typeof body === 'string' ? body : JSON.stringify(body)) : '';
-            
+
             // 记录操作日志
             addOperationLog(username, operation, method, params, ip, status, error_msg);
-            
+
             return originalSend.apply(res, arguments);
         };
-        
+
         // 覆盖json方法
         res.json = function (body) {
             const operation = options.operation || guessOperation(req.method);
@@ -189,20 +189,20 @@ let operationLogMiddleware = function (options = {}) {
                 query: req.query,
                 url: req.url
             };
-            
+
             const status = statusCode >= 200 && statusCode < 400 ? 'success' : 'fail';
             let error_msg = '';
-            
+
             if (status === 'fail') {
                 error_msg = body.msg || body.message || JSON.stringify(body);
             }
-            
+
             // 记录操作日志
             addOperationLog(username, operation, method, params, ip, status, error_msg);
-            
+
             return originalJson.apply(res, arguments);
         };
-        
+
         next();
     };
 };
