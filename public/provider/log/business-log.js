@@ -11,7 +11,7 @@ class BusinessLog {
   static async find(query) {
     let sql = 'SELECT * FROM business_log WHERE 1=1'
     const values = []
-    
+
     if (query.module) {
       sql += ' AND module = ?'
       values.push(query.module)
@@ -37,9 +37,9 @@ class BusinessLog {
     }
 
     // 添加分页支持
-    if (query.skip && query.limit) {
+    if (query.limit) {
       sql += ' LIMIT ?, ?'
-      values.push(query.skip, query.limit)
+      values.push(query.skip, Number(query.limit))
     }
 
     return new Promise((resolve, reject) => {
@@ -52,7 +52,7 @@ class BusinessLog {
 
   static async create(logData) {
     const { module, type, title, content, operator } = logData
-    
+
     // 使用格式化函数创建MySQL兼容的日期时间格式
     const mysqlDateTime = formatMySQLDateTime(new Date())
 
@@ -76,7 +76,7 @@ class BusinessLog {
   static async countDocuments(query) {
     let sql = 'SELECT COUNT(*) as count FROM business_log WHERE 1=1'
     const values = []
-    
+
     if (query.module) {
       sql += ' AND module = ?'
       values.push(query.module)

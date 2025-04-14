@@ -11,7 +11,7 @@ class OperationLog {
   static async find(query) {
     let sql = 'SELECT * FROM operation_log WHERE 1=1'
     const values = []
-    
+
     if (query.username) {
       sql += ' AND username LIKE ?'
       values.push(`%${query.username}%`)
@@ -28,6 +28,10 @@ class OperationLog {
       sql += ' AND create_time BETWEEN ? AND ?'
       values.push(query.create_time.$gte, query.create_time.$lte)
     }
+    if (query.limit) {
+      sql += ' LIMIT ?, ?'
+      values.push(query.skip, Number(query.limit))
+    }
 
     return new Promise((resolve, reject) => {
       db.selectData(sql, values, (err, result) => {
@@ -39,7 +43,7 @@ class OperationLog {
 
   static async create(logData) {
     const { username, operation, method, params, ip, status, error_msg } = logData
-    
+
     // 使用格式化函数创建MySQL兼容的日期时间格式
     const mysqlDateTime = formatMySQLDateTime(new Date())
 
@@ -65,7 +69,7 @@ class OperationLog {
   static async countDocuments(query) {
     let sql = 'SELECT COUNT(*) as count FROM operation_log WHERE 1=1'
     const values = []
-    
+
     if (query.username) {
       sql += ' AND username LIKE ?'
       values.push(`%${query.username}%`)

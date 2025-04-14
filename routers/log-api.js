@@ -11,13 +11,15 @@ router.use((req, res, next) => {
 // 查询登录日志
 router.get('/queryLoginLogs', async (req, res) => {
   try {
-    const { username, ip, status, timeRange } = req.query
-    const data = await LogService.getLoginLogs({ 
-      username, 
-      ip, 
+    const { username, ip, status, timeRange, curPage, pageSize } = req.query
+    const data = await LogService.getLoginLogs({
+      username,
+      ip,
       status,
       startTime: timeRange?.[0],
-      endTime: timeRange?.[1]
+      endTime: timeRange?.[1],
+      page: curPage,
+      pageSize
     })
     res.json({ status: true, msg: 'success', data })
   } catch (error) {
@@ -28,13 +30,15 @@ router.get('/queryLoginLogs', async (req, res) => {
 // 查询操作日志
 router.get('/queryOperationLogs', async (req, res) => {
   try {
-    const { username, operation, status, timeRange } = req.query
+    const { username, operation, status, timeRange, curPage, pageSize } = req.query
     const data = await LogService.getOperationLogs({
       username,
       operation,
       status,
       startTime: timeRange?.[0],
-      endTime: timeRange?.[1]
+      endTime: timeRange?.[1],
+      page: curPage,
+      pageSize
     })
     res.json({ status: true, msg: 'success', data })
   } catch (error) {
@@ -45,13 +49,15 @@ router.get('/queryOperationLogs', async (req, res) => {
 // 查询业务日志
 router.get('/queryBusinessLogs', async (req, res) => {
   try {
-    const { module, type, operator, timeRange } = req.query
+    const { module, type, operator, timeRange, curPage, pageSize } = req.query
     const data = await LogService.getBusinessLogs({
       module,
       type,
       operator,
       startTime: timeRange?.[0],
-      endTime: timeRange?.[1]
+      endTime: timeRange?.[1],
+      page: curPage,
+      pageSize
     })
     res.json({ status: true, msg: 'success', data })
   } catch (error) {
@@ -66,16 +72,16 @@ router.get('/getLogStatistics', async (req, res) => {
     const today = new Date()
     const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
-    
+
     // 获取统计数据
     const data = await LogService.getLogStatistics({
       startTime: timeRange?.[0] || new Date(today.setHours(0, 0, 0, 0)),
       endTime: timeRange?.[1] || new Date(today.setHours(23, 59, 59, 999))
     })
 
-    res.json({ 
-      status: true, 
-      msg: 'success', 
+    res.json({
+      status: true,
+      msg: 'success',
       data: {
         ...data,
         charts: data.charts // 确保包含图表数据
