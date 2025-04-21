@@ -28,6 +28,11 @@ class LoginLog {
       sql += ' AND create_time BETWEEN ? AND ?'
       values.push(query.create_time.$gte, query.create_time.$lte)
     }
+    if (query.sort) {
+      const sortField = Object.keys(query.sort)[0]
+      const sortOrder = query.sort[sortField] === 1 ? 'ASC' : 'DESC'
+      sql += ` ORDER BY ${sortField} ${sortOrder}`
+    }
     if (query.limit) {
       sql += ' LIMIT ?, ?'
       values.push(query.skip, Number(query.limit))
