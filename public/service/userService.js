@@ -243,7 +243,7 @@ class UserService {
     }
 
 
-    async verifyLogin(token) {
+    async verifyLogin(token = '') {
         const tokenInfo = JSON.parse(this.Token.decryption(token) || '{}');
         if (tokenInfo.appID !== this.appID) {
             return false;

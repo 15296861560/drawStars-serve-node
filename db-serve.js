@@ -20,6 +20,7 @@ const profileApi = require('./routers/profile-api')
 const loginApi = require('./routers/login-api')
 const notifyApi = require('./routers/notify-api')
 const baiduApi = require('./routers/baidu-api')
+const appApi = require('./routers/app-api')
 const logApi = require('./routers/log-api')
 const tokenVerify = require('./public/provider/tokenVerify').tokenVerify
 const Log = require('./public/provider/log')
@@ -77,6 +78,7 @@ server.use('/loginApi', loginRouter)
 
 server.use('/notifyApi', notifyApi)
 server.use('/baiduApi', baiduApi)
+server.use('/appApi', appApi)
 server.use('/logApi', logApi)
 
 

@@ -152,11 +152,12 @@ router.post('/upload', (req, res) => {
 
   const form = new Formidable(options)
   let newName = ''
+  let orgName = ''
   try {
     form.parse(req, (err, fielads, files) => {
       // console.log("fielads", fielads);
       // console.log("files", files);
-      const orgName = fielads.filename[0];
+      orgName = fielads.filename[0];
       // let extname = path.extname(orgName);
       const oldpath = files.file[0].filepath
       newName = `${new Date().getTime()}_${orgName}`
@@ -172,19 +173,6 @@ router.post('/upload', (req, res) => {
         throw err
       }
     });
-    // form.on('progress', (bytesReceived, bytesExpected) => {
-    //   console.log("收到的字节数" + bytesReceived);
-    //   console.log("预期字节数" + bytesExpected);
-    // });
-    // form.on('field', (name, value) => {
-    //   console.log(name + " = " + value);
-    // });
-    // form.on('fileBegin', (name, file) => {
-    //   console.log(name + " = ", file);
-    // });
-    // form.on('file', (name, file) => {
-    //   console.log(name + " = ", file);
-    // });
 
   } catch (e) {
     res.status(500).json({
@@ -196,7 +184,7 @@ router.post('/upload', (req, res) => {
     console.log('结束解析');
     res.status(200).json({
       "status": true,
-      "data": { url: `/${newName}`, msg: '上传成功' }
+      "data": { url: `/${newName}`, name: orgName, msg: '上传成功' }
     });
   });
 
