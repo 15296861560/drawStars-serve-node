@@ -22,6 +22,7 @@ const notifyApi = require('./routers/notify-api')
 const baiduApi = require('./routers/baidu-api')
 const appApi = require('./routers/app-api')
 const logApi = require('./routers/log-api')
+const convertApi = require('./routers/convert-api')
 const tokenVerify = require('./public/provider/tokenVerify').tokenVerify
 const Log = require('./public/provider/log')
 
@@ -30,9 +31,10 @@ const Log = require('./public/provider/log')
 
 
 // json 解析 
-server.use(express.json());
+server.use(express.json({ limit: '5mb' }));
 server.use(express.urlencoded({
-  extended: false
+  extended: false,
+  limit: '5mb'
 }));
 
 //设置跨域访问
@@ -80,6 +82,7 @@ server.use('/notifyApi', notifyApi)
 server.use('/baiduApi', baiduApi)
 server.use('/appApi', appApi)
 server.use('/logApi', logApi)
+server.use('/convertApi', convertApi)
 
 
 server.listen(port)
@@ -88,6 +91,12 @@ server.listen(port)
 process.on('uncaughtException', function (err) {
   console.log('uncaughtException', typeof err === 'string' ? err : JSON.stringify(err));
   
+  // 特殊处理ECONNRESET错误
+  if (err.code === 'ECONNRESET' && err.syscall === 'read') {
+    console.warn('客户端连接意外中断:', err.message);
+    return;
+  }
+
   // 记录为业务日志
   try {
     Log.addBusinessLog(
