@@ -4,3 +4,5 @@ allowBuilds:
   "@prisma/engines": true
   prisma: true
   esbuild: true
+  "@apollo/protobufjs": true
+  "@nestjs/core": true

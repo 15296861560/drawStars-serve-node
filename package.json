@@ -6,14 +6,22 @@
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
-    "dev": "tsx watch src/db-serve.ts",
+    "dev": "pnpm build && node dist/main.js",
     "build": "prisma generate && tsc",
-    "serve": "set NODE_ENV=production&& node dist/db-serve.js",
-    "start": "node dist/db-serve.js",
+    "serve": "set NODE_ENV=production&& node dist/main.js",
+    "start": "node dist/main.js",
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@apollo/server": "^5.5.1",
+    "@as-integrations/express5": "^1.1.2",
+    "@nestjs/apollo": "^13.4.2",
+    "@nestjs/common": "^11.1.24",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.1.24",
+    "@nestjs/graphql": "^13.4.2",
+    "@nestjs/platform-express": "^11.1.24",
     "@prisma/client": "^6.9.0",
     "agora-rtc-sdk": "^2.8.0",
     "agora-rtm-sdk": "1.4.1",
@@ -24,8 +32,11 @@
     "drawstarts-notify-serve": "^0.0.4",
     "express": "^4.18.1",
     "formidable": "^3.5.1",
+    "graphql": "^16.14.0",
     "moment-timezone": "^0.5.33",
     "redis": "^4.6.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
     "ws": "^8.10.0"
   },
   "devDependencies": {

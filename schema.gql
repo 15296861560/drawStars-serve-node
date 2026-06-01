@@ -1,0 +1,26 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type UserProfileType {
+  id: Int!
+  name: String
+  introduction: String
+  birthday: String
+  region: String
+  gender: String
+  phone: String
+}
+
+type GenericMutationResult {
+  status: Boolean!
+  msg: String!
+}
+
+type Query {
+  userProfile(id: Int!): UserProfileType
+}
+
+type Mutation {
+  changeUserPhone(id: Int!, phone: String!): GenericMutationResult!
+}
