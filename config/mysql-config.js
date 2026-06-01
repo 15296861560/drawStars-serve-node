@@ -1,7 +1,6 @@
-const mysql = require('mysql')
-const config = require('./publish-config')
-const mysqlConfig = config.mysql || {}
-
+const mysql = require("mysql2");
+const config = require("./publish-config");
+const mysqlConfig = config.mysql || {};
 
 const pool = mysql.createPool({
   host: mysqlConfig.host,
@@ -9,17 +8,15 @@ const pool = mysql.createPool({
   user: mysqlConfig.user,
   password: mysqlConfig.password,
   database: mysqlConfig.database,
-  useConnectionPooling: true,
+  // useConnectionPooling: true,
 });
 
 const connectdb = {};
 
 connectdb.query = function (sql, params, callback) {
-
   return new Promise((resolve, reject) => {
     // 取出链接
     pool.getConnection(function (err, connection) {
-
       if (err) {
         reject(err);
         return;
@@ -30,16 +27,15 @@ connectdb.query = function (sql, params, callback) {
         connection.release();
         if (error) {
           console.log(`${sql}=>${params}`);
-          console.log('error', error)
+          console.log("error", error);
           reject(error);
           return;
         }
-        callback(error, results, fields)
+        callback(error, results, fields);
         resolve(results);
       });
-
     });
   });
-}
+};
 // 导出对象
 module.exports = connectdb;
