@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model AppInfo {
+  appName        String  @id @map("app_name") @db.VarChar(255)
+  appId          String? @map("app_id") @db.VarChar(255)
+  appCertificate String? @map("app_certificate") @db.Text
+  appVersion     String? @default("draw_starts_1.0.0") @map("app_version") @db.VarChar(255)
+
+  @@map("app_info")
+}
+
+model User {
+  id           BigInt  @id @default(autoincrement())
+  name         String? @default("") @db.VarChar(64)
+  password     String? @db.VarChar(255)
+  createTime   BigInt? @map("createTime")
+  updateTime   BigInt? @map("updateTime")
+  level        Int?
+  phone        String? @unique @db.VarChar(20)
+  gender       String? @db.Char(10)
+  introduction String? @db.VarChar(255)
+  birthday     String? @db.VarChar(64)
+  region       String? @db.VarChar(255)
+  avatar       String? @db.VarChar(255)
+
+  @@map("user")
+}
+
+model OauthInfo {
+  platform   String @db.VarChar(64)
+  userId     BigInt @map("user_id")
+  openId     String @map("open_id") @db.VarChar(255)
+  createTime BigInt? @map("create_time")
+  updateTime BigInt? @map("update_time")
+
+  @@id([platform, userId])
+  @@map("oauth_info")
+}
+
+model Log {
+  logId       BigInt  @id @default(autoincrement()) @map("log_id")
+  logType     String? @map("log_type") @db.VarChar(32)
+  content     String? @db.Text
+  hostname    String? @db.VarChar(255)
+  originalUrl String? @db.VarChar(255)
+  createTime  BigInt? @map("createTime")
+
+  @@map("log")
+}
+
+model Notify {
+  id         BigInt  @id @default(autoincrement()) @map("notifyI_id")
+  createTime BigInt? @map("create_time")
+  updateTime BigInt? @map("update_time")
+  createBy   BigInt? @map("create_by")
+  updateBy   BigInt? @map("update_by")
+  notifyType String? @map("notify_type") @db.VarChar(64)
+  notifyMsg  Bytes?  @map("notify_msg")
+  sendId     BigInt? @map("send_id")
+  receiveId  BigInt? @map("receive_id")
+
+  @@map("notify")
+}
+
+model Province {
+  id       Int     @id @default(autoincrement()) @db.UnsignedInt
+  code     BigInt?
+  name     String? @db.VarChar(32)
+  province String? @db.VarChar(32)
+  city     String? @db.VarChar(32)
+  area     String? @db.VarChar(32)
+  town     String? @db.VarChar(32)
+
+  @@map("province")
+}
+
+model Pageview {
+  viewId    Int       @id @map("view_id")
+  createTime DateTime? @map("create_time")
+  userId    Int?      @map("user_id")
+  ipv4      String?   @db.VarChar(64)
+  language  String?   @db.VarChar(64)
+  system    String?   @db.VarChar(255)
+  hostname  String?   @db.VarChar(255)
+  browser   String?   @db.VarChar(64)
+  equipment String?   @db.VarChar(255)
+
+  @@map("pageview")
+}
