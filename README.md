@@ -18,8 +18,12 @@ npx prisma generate
 # 可选：复制并编辑数据库连接
 cp .env.example .env
 
-# 开发（热重载）
+# 开发（改 schema 后先停服务，再 prisma generate / db push，然后 dev）
 pnpm dev
+
+# 需要重新生成 Prisma Client 时用（请先停止正在运行的 node 服务，避免 Windows EPERM）
+pnpm build
+# 或仅生成 Client：pnpm prisma:generate
 
 # 生产构建与运行
 pnpm build
@@ -27,6 +31,18 @@ pnpm serve
 ```
 
 未设置 `DATABASE_URL` 时，会自动根据 `src/config/publish-config.ts` 中的 MySQL 配置拼接连接串。
+
+### AI 助手
+
+1. 同步表结构（需 `.env` 中 `DATABASE_URL`，或与本机 `publish-config` MySQL 一致）：
+   ```bash
+   cp .env.example .env   # 首次
+   pnpm db:sync
+   ```
+   若报 `ai_conversation does not exist`，说明尚未执行上一步。
+2. 在 `app_info` 配置 `openai`（API Key / 模型 / Base URL）与 `ai_assistant`（系统提示词、上传大小）；百度 `baidu_translate` / `baidu_map` 同上
+3. 接口：`/ai-assistant/conversations`、`/ai-assistant/chat`、`/ai-assistant/chat/stream`（SSE）、`/ai-assistant/upload`
+4. 前端 `.env`：`VITE_AI_ASSISTANT_MOCK=false`、`VITE_AI_ASSISTANT_STREAM=true`（默认开启流式）
 
 ## 目录说明
 

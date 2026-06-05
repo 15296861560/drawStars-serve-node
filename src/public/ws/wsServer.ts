@@ -7,6 +7,16 @@ const ws = new WebSocket.Server({ port }, () => {
   console.log(`websocket run port ${port}`);
 });
 
+ws.on("error", (err: NodeJS.ErrnoException) => {
+  if (err.code === "EADDRINUSE") {
+    console.warn(
+      `[ws] port ${port} already in use — stop the previous node process or use: netstat -ano | findstr :${port}`,
+    );
+    return;
+  }
+  console.error("[ws] server error:", err);
+});
+
 ws.on("connection", (client) => {
   client.send("连接WebSocket成功");
   client.on("message", (msg) => {
