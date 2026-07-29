@@ -1,3 +1,6 @@
+packages:
+  - '.'
+
 # pnpm v10.6+ / v11：显式允许需要 postinstall 的依赖执行构建脚本
 allowBuilds:
   "@prisma/client": true
