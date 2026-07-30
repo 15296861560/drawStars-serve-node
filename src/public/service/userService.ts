@@ -47,6 +47,9 @@ class UserService {
           method: "queryUserByCondition",
           condition,
           value,
+          username:
+            (row as { name?: string } | null)?.name ||
+            (condition === "name" || condition === "phone" ? String(value) : ""),
           result: true,
         });
         return row ? serializeBigInt(row) : null;
@@ -69,6 +72,9 @@ class UserService {
         method: "queryUserByCondition",
         condition,
         value,
+        username:
+          row?.name ||
+          (condition === "name" || condition === "phone" ? String(value) : ""),
         result: true,
       });
 
@@ -78,6 +84,8 @@ class UserService {
         method: "queryUserByCondition",
         condition,
         value,
+        username:
+          condition === "name" || condition === "phone" ? String(value) : "",
         result: e,
       });
       throw e;
@@ -129,14 +137,16 @@ class UserService {
       const result = await prisma.user.create({ data });
       Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
         method: "createUser",
-        userInfo,
+        username: String(userInfo.name || userInfo.phone || ""),
+        userInfo: { ...userInfo, password: "***" },
         result: true,
       });
       return serializeBigInt(result);
     } catch (e) {
       Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
         method: "createUser",
-        userInfo,
+        username: String(userInfo.name || userInfo.phone || ""),
+        userInfo: { ...userInfo, password: "***" },
         result: e,
       });
       throw e;

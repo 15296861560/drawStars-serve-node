@@ -4,6 +4,8 @@ export const LOG_TYPE = {
   API: "api",
   REDIS: "redis",
   OPERATE: "operate",
+  BUSINESS: "business",
+  PERFORMANCE: "performance",
 } as const;
 
 const MAX_LOG = 100;
