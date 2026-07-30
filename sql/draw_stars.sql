@@ -148,6 +148,7 @@ CREATE TABLE `province`  (
 -- ----------------------------
 -- Table structure for user
 -- ----------------------------
+DROP TABLE IF EXISTS `user_notify_pref`;
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -157,14 +158,36 @@ CREATE TABLE `user`  (
   `updateTime` bigint(20) NULL DEFAULT NULL,
   `level` int(11) NULL DEFAULT NULL,
   `phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `account_alias` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `gender` char(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `introduction` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `birthday` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `region` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT 'active',
+  `sms_login_enabled` tinyint(1) NULL DEFAULT 1,
+  `oauth_login_enabled` tinyint(1) NULL DEFAULT 1,
+  `deleted_at` bigint(20) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `phone_unique`(`phone`) USING BTREE COMMENT '手机号码不可重复'
+  UNIQUE INDEX `phone_unique`(`phone`) USING BTREE COMMENT '手机号码不可重复',
+  UNIQUE INDEX `user_email_key`(`email`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 65 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for user_notify_pref
+-- ----------------------------
+DROP TABLE IF EXISTS `user_notify_pref`;
+CREATE TABLE `user_notify_pref`  (
+  `user_id` bigint(20) NOT NULL,
+  `in_app` tinyint(1) NOT NULL DEFAULT 1,
+  `sms` tinyint(1) NOT NULL DEFAULT 0,
+  `email` tinyint(1) NOT NULL DEFAULT 0,
+  `websocket` tinyint(1) NOT NULL DEFAULT 1,
+  `update_time` bigint(20) NULL DEFAULT NULL,
+  PRIMARY KEY (`user_id`) USING BTREE,
+  CONSTRAINT `user_notify_pref_user_fk` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for web_adress

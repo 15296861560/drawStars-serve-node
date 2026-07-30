@@ -102,6 +102,7 @@ class UserService {
         name: userInfo.name as string | undefined,
         password: userInfo.password as string | undefined,
         phone: userInfo.phone as string | undefined,
+        email: userInfo.email as string | undefined,
         createTime: userInfo.createTime
           ? BigInt(userInfo.createTime as number)
           : undefined,
@@ -114,6 +115,15 @@ class UserService {
         introduction: userInfo.introduction as string | undefined,
         birthday: userInfo.birthday as string | undefined,
         region: userInfo.region as string | undefined,
+        status: (userInfo.status as string | undefined) || "active",
+        smsLoginEnabled:
+          userInfo.smsLoginEnabled === undefined
+            ? true
+            : Boolean(userInfo.smsLoginEnabled),
+        oauthLoginEnabled:
+          userInfo.oauthLoginEnabled === undefined
+            ? true
+            : Boolean(userInfo.oauthLoginEnabled),
       };
 
       const result = await prisma.user.create({ data });
@@ -144,11 +154,18 @@ class UserService {
     if (!userInfo) {
       throw "账号不存在";
     }
+    if (userInfo.deletedAt) {
+      throw "账号已注销";
+    }
+    if (userInfo.status && userInfo.status !== "active") {
+      throw "账号已停用";
+    }
     if (password !== userInfo.password) {
       throw "密码错误";
     }
 
     this.setToken(userInfo);
+    delete userInfo.password;
     return userInfo;
   }
 
@@ -243,6 +260,10 @@ class UserService {
     if (!tokenInfo || !tokenInfo.uid) return false;
 
     const userInfo = await this.queryUserById(tokenInfo.uid);
+    if (!userInfo) return false;
+    if (userInfo.deletedAt) return false;
+    if (userInfo.status && userInfo.status !== "active") return false;
+    delete userInfo.password;
     return userInfo;
   }
 
@@ -290,9 +311,28 @@ class UserService {
     if (!userInfo) {
       throw "账号不存在";
     }
+    if (userInfo.deletedAt) {
+      throw "账号已注销";
+    }
+    if (userInfo.status && userInfo.status !== "active") {
+      throw "账号已停用";
+    }
+    if (userInfo.smsLoginEnabled === false) {
+      throw "未开启短信一键登录";
+    }
 
     this.setToken(userInfo);
+    delete userInfo.password;
     return userInfo;
+  }
+
+  async queryUserByEmail(email: string) {
+    try {
+      const row = await prisma.user.findFirst({ where: { email } });
+      return row ? serializeBigInt(row) : null;
+    } catch (e) {
+      throw e;
+    }
   }
 }
 
