@@ -19,8 +19,8 @@ export interface AppConfig {
 
 const dev_config: AppConfig = {
   mysql: {
-    host: "localhost",
-    port: 3306,
+    host: "192.168.1.3",
+    port: 44925,
     user: "drawStars",
     password: "Admin_123",
     database: "draw_stars",

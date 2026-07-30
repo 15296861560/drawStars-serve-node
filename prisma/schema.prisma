@@ -95,6 +95,19 @@ model Pageview {
   @@map("pageview")
 }
 
+model WebAdress {
+  id         BigInt  @id @default(autoincrement())
+  name       String? @db.VarChar(64)
+  address    String? @db.VarChar(255)
+  createTime BigInt? @map("create_time")
+  updateTime BigInt? @map("update_time")
+  type       String? @db.VarChar(64)
+  icon       String? @db.VarChar(255)
+  openWay    String? @map("open_way") @db.VarChar(32)
+
+  @@map("web_adress")
+}
+
 model AiConversation {
   id        String      @id @default(uuid()) @db.VarChar(36)
   userKey   String      @map("user_key") @db.VarChar(64)
