@@ -15,7 +15,7 @@ import {
 const PERF_THRESHOLD_MS = 300;
 
 /** 避免日志接口自身递归写日志 */
-const SKIP_PREFIXES = ["/logApi/"];
+const SKIP_PREFIXES = ["/logApi/", "/analyticsApi/collect"];
 
 /** 这些请求额外记入操作日志 */
 const OPERATE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);

@@ -9,6 +9,7 @@ type QueryParams = {
   pageSize?: number | string;
   startTime?: string | number;
   endTime?: string | number;
+  timeRange?: string | string[];
   username?: string;
   operation?: string;
   status?: string;
@@ -18,7 +19,20 @@ type QueryParams = {
   method?: string;
   ip?: string;
   url?: string;
+  keyword?: string;
+  /** 仅登录/登出相关（登录日志页） */
+  loginOnly?: boolean | string;
   [key: string]: unknown;
+};
+
+/** 前端操作类型 → content 匹配关键词 */
+const OPERATION_KEYWORDS: Record<string, string[]> = {
+  insert: ["insert", "create", "register", "新增", "添加"],
+  update: ["update", "modify", "修改", "更新"],
+  delete: ["delete", "cancel", "删除", "移除"],
+  select: ["select", "query", "list", "查询", "获取"],
+  login: ["login", "登录", "signin"],
+  logout: ["logout", "登出", "signout"],
 };
 
 @Injectable()
@@ -29,6 +43,90 @@ export class LogsService {
     const curPage = Math.max(1, Number(params.curPage) || 1);
     const pageSize = Math.min(100, Math.max(1, Number(params.pageSize) || 10));
     return { curPage, pageSize, skip: (curPage - 1) * pageSize };
+  }
+
+  /** 规范化查询参数：空值清理、timeRange → start/end */
+  private normalizeParams(params: QueryParams): QueryParams {
+    const next: QueryParams = { ...params };
+
+    for (const key of Object.keys(next)) {
+      const val = next[key];
+      if (val === "" || val == null) {
+        delete next[key];
+        continue;
+      }
+      if (Array.isArray(val) && val.length === 0) {
+        delete next[key];
+      }
+    }
+
+    let range = next.timeRange as string | string[] | undefined;
+    if (typeof range === "string") {
+      const trimmed = range.trim();
+      if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+        try {
+          range = JSON.parse(trimmed) as string[];
+        } catch {
+          range = trimmed.split(/[,~]/).map((s) => s.trim()).filter(Boolean);
+        }
+      } else {
+        range = trimmed.split(/[,~]/).map((s) => s.trim()).filter(Boolean);
+      }
+    }
+    if (Array.isArray(range) && range.length >= 2) {
+      if (!next.startTime) next.startTime = range[0];
+      if (!next.endTime) next.endTime = range[1];
+    }
+    delete next.timeRange;
+
+    if (next.loginOnly === "true" || next.loginOnly === "1") {
+      next.loginOnly = true;
+    }
+
+    return next;
+  }
+
+  private parseTimeBound(value: string | number, endOfDay = false): bigint | null {
+    if (value == null || value === "") return null;
+    const raw = String(value).trim();
+    let ms: number;
+    if (/^\d+$/.test(raw)) {
+      ms = Number(raw);
+      // 秒级时间戳
+      if (raw.length <= 10) ms *= 1000;
+    } else {
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return null;
+      if (endOfDay && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        d.setHours(23, 59, 59, 999);
+      }
+      ms = d.getTime();
+    }
+    if (!Number.isFinite(ms)) return null;
+    return BigInt(ms);
+  }
+
+  private contentContainsAny(keywords: string[]): Prisma.LogWhereInput {
+    const unique = [...new Set(keywords.map((k) => String(k).trim()).filter(Boolean))];
+    if (!unique.length) return {};
+    if (unique.length === 1) {
+      return { content: { contains: unique[0] } };
+    }
+    return { OR: unique.map((k) => ({ content: { contains: k } })) };
+  }
+
+  /** JSON 字段模糊匹配（兼容有无空格的序列化） */
+  private jsonFieldContains(field: string, value: string): Prisma.LogWhereInput {
+    const v = String(value).trim();
+    if (!v) return {};
+    return {
+      OR: [
+        { content: { contains: `"${field}":"${v}"` } },
+        { content: { contains: `"${field}": "${v}"` } },
+        { content: { contains: `"${field}":${JSON.stringify(v)}` } },
+        { content: { contains: v } },
+      ],
+    };
   }
 
   private parseContent(raw: string | null | undefined): Record<string, unknown> {
@@ -51,34 +149,118 @@ export class LogsService {
   }
 
   private buildWhere(logType: string, params: QueryParams): Prisma.LogWhereInput {
+    const p = this.normalizeParams(params);
     const where: Prisma.LogWhereInput = { logType };
     const and: Prisma.LogWhereInput[] = [];
 
-    if (params.startTime) {
-      and.push({ createTime: { gte: BigInt(new Date(params.startTime).getTime()) } });
+    const start = p.startTime != null ? this.parseTimeBound(p.startTime, false) : null;
+    if (start != null) {
+      and.push({ createTime: { gte: start } });
     }
-    if (params.endTime) {
-      const end = new Date(params.endTime);
-      end.setHours(23, 59, 59, 999);
-      and.push({ createTime: { lte: BigInt(end.getTime()) } });
-    }
-    if (params.url) {
-      and.push({ originalUrl: { contains: String(params.url) } });
+    const end = p.endTime != null ? this.parseTimeBound(p.endTime, true) : null;
+    if (end != null) {
+      and.push({ createTime: { lte: end } });
     }
 
-    const keywordFields = [
-      params.username,
-      params.operation,
-      params.status,
-      params.module,
-      params.type,
-      params.operator,
-      params.method,
-      params.ip,
-    ].filter(Boolean) as string[];
+    if (p.url) {
+      and.push({ originalUrl: { contains: String(p.url) } });
+    }
 
-    for (const kw of keywordFields) {
-      and.push({ content: { contains: String(kw) } });
+    if (p.username) {
+      and.push(this.jsonFieldContains("username", String(p.username)));
+    }
+    if (p.operator) {
+      and.push({
+        OR: [
+          this.jsonFieldContains("operator", String(p.operator)),
+          this.jsonFieldContains("username", String(p.operator)),
+        ],
+      });
+    }
+    if (p.ip) {
+      const ip = String(p.ip).trim();
+      and.push({
+        OR: [
+          { content: { contains: `"ip":"${ip}"` } },
+          { content: { contains: `"ip": "${ip}"` } },
+          { content: { contains: ip } },
+          { hostname: { contains: ip } },
+        ],
+      });
+    }
+    if (p.status) {
+      const status = String(p.status).trim().toLowerCase();
+      if (status === "success" || status === "ok" || status === "true") {
+        and.push({
+          OR: [
+            { content: { contains: '"status":"success"' } },
+            { content: { contains: '"status": "success"' } },
+            { content: { contains: '"result":true' } },
+            { content: { contains: '"result": true' } },
+          ],
+          NOT: {
+            OR: [
+              { content: { contains: '"status":"fail"' } },
+              { content: { contains: '"status":"error"' } },
+            ],
+          },
+        });
+      } else if (status === "fail" || status === "error" || status === "false") {
+        and.push({
+          OR: [
+            { content: { contains: '"status":"fail"' } },
+            { content: { contains: '"status":"error"' } },
+            { content: { contains: '"status": "fail"' } },
+            { content: { contains: '"status": "error"' } },
+            { content: { contains: '"result":false' } },
+            { content: { contains: '"result": false' } },
+          ],
+        });
+      } else {
+        and.push(this.jsonFieldContains("status", String(p.status)));
+      }
+    }
+    if (p.module) {
+      and.push(this.jsonFieldContains("module", String(p.module)));
+    }
+    if (p.type) {
+      and.push({
+        OR: [
+          this.jsonFieldContains("type", String(p.type)),
+          { content: { contains: String(p.type) } },
+        ],
+      });
+    }
+    if (p.method) {
+      and.push(this.jsonFieldContains("method", String(p.method)));
+    }
+    if (p.operation) {
+      const op = String(p.operation).trim().toLowerCase();
+      const keywords = OPERATION_KEYWORDS[op] || [String(p.operation)];
+      and.push(this.contentContainsAny(keywords));
+    }
+    if (p.keyword) {
+      const kw = String(p.keyword).trim();
+      and.push({
+        OR: [
+          { content: { contains: kw } },
+          { originalUrl: { contains: kw } },
+          { hostname: { contains: kw } },
+        ],
+      });
+    }
+
+    if (p.loginOnly === true) {
+      and.push({
+        OR: [
+          { content: { contains: "login" } },
+          { content: { contains: "登录" } },
+          { content: { contains: "logout" } },
+          { content: { contains: "登出" } },
+          { originalUrl: { contains: "login" } },
+          { originalUrl: { contains: "Login" } },
+        ],
+      });
     }
 
     if (and.length) where.AND = and;
@@ -156,9 +338,24 @@ export class LogsService {
             ? JSON.stringify(content.params)
             : "",
       ip: content.ip ?? row.hostname ?? "",
-      status: content.status ?? (content.result === true || content.result === "success" ? "success" : content.result ? "fail" : ""),
+      location: content.location ?? content.region ?? "",
+      browser: content.browser ?? "",
+      os: content.os ?? content.system ?? "",
+      status:
+        content.status ??
+        (content.result === true || content.result === "success"
+          ? "success"
+          : content.result === false || content.result === "fail"
+            ? "fail"
+            : content.result
+              ? "fail"
+              : ""),
       msg: content.msg ?? "",
-      errorMsg: content.errorMsg ?? (typeof content.result === "object" ? JSON.stringify(content.result) : ""),
+      errorMsg:
+        content.errorMsg ??
+        (typeof content.result === "object"
+          ? JSON.stringify(content.result)
+          : ""),
       module: content.module ?? "",
       type: content.type ?? row.logType ?? "",
       title: content.title ?? content.event ?? row.originalUrl ?? "",
@@ -174,8 +371,9 @@ export class LogsService {
   }
 
   async queryByType(logType: string, params: QueryParams) {
-    const { curPage, pageSize, skip } = this.parsePage(params);
-    const where = this.buildWhere(logType, params);
+    const normalized = this.normalizeParams(params);
+    const { curPage, pageSize, skip } = this.parsePage(normalized);
+    const where = this.buildWhere(logType, normalized);
 
     const [total, rows] = await Promise.all([
       this.prisma.client.log.count({ where }),
@@ -200,27 +398,11 @@ export class LogsService {
   }
 
   async queryLoginLogs(params: QueryParams) {
-    // 登录相关记录落在 operate 类型中，按 method/operation 过滤
-    const result = await this.queryByType(LOG_TYPE.OPERATE, {
+    // 登录相关记录落在 operate / 登录接口路径中，在 SQL 侧筛选并保留其它过滤条件
+    return this.queryByType(LOG_TYPE.OPERATE, {
       ...params,
-      operation: params.operation || "login",
+      loginOnly: true,
     });
-    if (result.data.list.length === 0) {
-      // 无精确匹配时回退到 content 含 login 的操作日志
-      return this.queryByType(LOG_TYPE.OPERATE, {
-        ...params,
-        operation: undefined,
-        username: params.username,
-      }).then((res) => {
-        res.data.list = res.data.list.filter((item) => {
-          const text = JSON.stringify(item.raw || item).toLowerCase();
-          return text.includes("login") || text.includes("登录");
-        });
-        res.data.total = res.data.list.length;
-        return res;
-      });
-    }
-    return result;
   }
 
   async getLogStatistics() {

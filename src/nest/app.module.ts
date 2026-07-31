@@ -11,6 +11,7 @@ import { MysqlModule } from "./modules/mysql/mysql.module";
 import { MiscModule } from "./modules/misc/misc.module";
 import { AiAssistantModule } from "./modules/ai-assistant/ai-assistant.module";
 import { LogsModule } from "./modules/logs/logs.module";
+import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { AuthGuard } from "./common/guards/auth.guard";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
@@ -31,6 +32,7 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
     MiscModule,
     AiAssistantModule,
     LogsModule,
+    AnalyticsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

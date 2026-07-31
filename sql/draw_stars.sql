@@ -239,4 +239,64 @@ CREATE TABLE `ai_message`  (
   CONSTRAINT `ai_message_conversation_id_fkey` FOREIGN KEY (`conversation_id`) REFERENCES `ai_conversation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
+
+-- ----------------------------
+-- Table structure for analytics_website
+-- ----------------------------
+DROP TABLE IF EXISTS `analytics_pageview`;
+DROP TABLE IF EXISTS `analytics_session`;
+DROP TABLE IF EXISTS `analytics_website`;
+CREATE TABLE `analytics_website`  (
+  `website_id` int(11) NOT NULL AUTO_INCREMENT,
+  `website_uuid` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `domain` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `share_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`website_id`) USING BTREE,
+  UNIQUE INDEX `analytics_website_website_uuid_key`(`website_uuid`) USING BTREE,
+  UNIQUE INDEX `analytics_website_share_id_key`(`share_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for analytics_session
+-- ----------------------------
+DROP TABLE IF EXISTS `analytics_pageview`;
+DROP TABLE IF EXISTS `analytics_session`;
+CREATE TABLE `analytics_session`  (
+  `session_id` int(11) NOT NULL AUTO_INCREMENT,
+  `session_uuid` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `website_id` int(11) NOT NULL,
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  `hostname` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `browser` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `os` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `device` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `screen` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `language` varchar(35) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `country` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  PRIMARY KEY (`session_id`) USING BTREE,
+  UNIQUE INDEX `analytics_session_session_uuid_key`(`session_uuid`) USING BTREE,
+  INDEX `analytics_session_website_id_created_at_idx`(`website_id`, `created_at`) USING BTREE,
+  CONSTRAINT `analytics_session_website_id_fkey` FOREIGN KEY (`website_id`) REFERENCES `analytics_website` (`website_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for analytics_pageview
+-- ----------------------------
+DROP TABLE IF EXISTS `analytics_pageview`;
+CREATE TABLE `analytics_pageview`  (
+  `view_id` int(11) NOT NULL AUTO_INCREMENT,
+  `website_id` int(11) NOT NULL,
+  `session_id` int(11) NOT NULL,
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  `url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `referrer` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  PRIMARY KEY (`view_id`) USING BTREE,
+  INDEX `analytics_pageview_website_id_created_at_idx`(`website_id`, `created_at`) USING BTREE,
+  INDEX `analytics_pageview_website_id_session_id_created_at_idx`(`website_id`, `session_id`, `created_at`) USING BTREE,
+  CONSTRAINT `analytics_pageview_website_id_fkey` FOREIGN KEY (`website_id`) REFERENCES `analytics_website` (`website_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `analytics_pageview_session_id_fkey` FOREIGN KEY (`session_id`) REFERENCES `analytics_session` (`session_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 SET FOREIGN_KEY_CHECKS = 1;
