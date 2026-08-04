@@ -19,32 +19,6 @@ const OAUTH_PLATFORMS = [
   "apple",
 ] as const;
 
-const ROLE_MAP: Record<
-  number,
-  { name: string; permissions: string[] }
-> = {
-  1: {
-    name: "普通用户",
-    permissions: ["查看个人中心", "编辑个人资料", "接收站内通知"],
-  },
-  2: {
-    name: "进阶用户",
-    permissions: [
-      "普通用户全部权限",
-      "使用高级组件",
-      "创建个人资源",
-    ],
-  },
-  9: {
-    name: "管理员",
-    permissions: ["进阶用户全部权限", "管理系统配置", "查看全部通知"],
-  },
-  99: {
-    name: "超级管理员",
-    permissions: ["全部系统权限", "用户管理", "角色管理"],
-  },
-};
-
 function stripPassword<T extends Record<string, unknown>>(user: T | null) {
   if (!user) return null;
   const { password: _p, ...rest } = user;
@@ -541,14 +515,48 @@ export class UsersService {
     const user = await this.queryUserInfo(id);
     if (!user) throw new Error("用户不存在");
     const level = user.level ?? 1;
-    const role = ROLE_MAP[level] || {
-      name: `等级 ${level}`,
-      permissions: ["基础访问权限"],
-    };
+
+    const userRoles = await this.prisma.client.sysUserRole.findMany({
+      where: { userId: BigInt(id) },
+      include: {
+        role: {
+          include: {
+            roleMenus: { include: { menu: true } },
+          },
+        },
+      },
+    });
+
+    const roleNames: string[] = [];
+    const roleCodes: string[] = [];
+    const permissionSet = new Set<string>();
+
+    for (const ur of userRoles) {
+      if (!ur.role || ur.role.status !== 1) continue;
+      roleNames.push(ur.role.name);
+      roleCodes.push(ur.role.code);
+      for (const rm of ur.role.roleMenus) {
+        if (rm.menu?.permission && rm.menu.status === 1) {
+          permissionSet.add(rm.menu.permission);
+        }
+      }
+    }
+
+    if (roleCodes.includes("super_admin")) {
+      const all = await this.prisma.client.sysMenu.findMany({
+        where: { status: 1, permission: { not: null } },
+        select: { permission: true },
+      });
+      for (const m of all) {
+        if (m.permission) permissionSet.add(m.permission);
+      }
+    }
+
     return {
       level,
-      roleName: role.name,
-      permissions: role.permissions,
+      roleName: roleNames.join("、") || `等级 ${level}`,
+      roles: roleCodes,
+      permissions: [...permissionSet],
       accountAlias: user.accountAlias,
       status: user.status,
     };

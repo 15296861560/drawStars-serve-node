@@ -36,8 +36,66 @@ model User {
   oauthLoginEnabled Boolean? @default(true) @map("oauth_login_enabled")
   deletedAt         BigInt?  @map("deleted_at")
   notifyPref        UserNotifyPref?
+  userRoles         SysUserRole[]
 
   @@map("user")
+}
+
+/// RBAC 角色
+model SysRole {
+  id         BigInt        @id @default(autoincrement())
+  name       String        @db.VarChar(64)
+  code       String        @unique @db.VarChar(64)
+  remark     String?       @db.VarChar(255)
+  status     Int           @default(1) @db.TinyInt
+  sort       Int           @default(0)
+  createTime BigInt?       @map("create_time")
+  updateTime BigInt?       @map("update_time")
+  userRoles  SysUserRole[]
+  roleMenus  SysRoleMenu[]
+
+  @@map("sys_role")
+}
+
+/// RBAC 菜单（目录 / 菜单 / 按钮）
+model SysMenu {
+  id         BigInt        @id @default(autoincrement())
+  parentId   BigInt        @default(0) @map("parent_id")
+  name       String        @db.VarChar(64)
+  type       Int           @db.TinyInt
+  path       String?       @db.VarChar(255)
+  component  String?       @db.VarChar(255)
+  permission String?       @db.VarChar(128)
+  icon       String?       @db.VarChar(64)
+  sort       Int           @default(0)
+  visible    Int           @default(1) @db.TinyInt
+  status     Int           @default(1) @db.TinyInt
+  createTime BigInt?       @map("create_time")
+  updateTime BigInt?       @map("update_time")
+  roleMenus  SysRoleMenu[]
+
+  @@index([parentId])
+  @@map("sys_menu")
+}
+
+model SysUserRole {
+  userId BigInt  @map("user_id")
+  roleId BigInt  @map("role_id")
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   SysRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("sys_user_role")
+}
+
+model SysRoleMenu {
+  roleId BigInt  @map("role_id")
+  menuId BigInt  @map("menu_id")
+  role   SysRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  menu   SysMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, menuId])
+  @@map("sys_role_menu")
 }
 
 model UserNotifyPref {
@@ -203,4 +261,23 @@ model AiMessage {
 
   @@index([conversationId, createdAt])
   @@map("ai_message")
+}
+
+/// 应用管理（产品/安装包目录，区别于 app_info 凭证配置）
+model AppManage {
+  id          BigInt  @id @default(autoincrement())
+  name        String  @db.VarChar(128)
+  description String? @db.VarChar(500)
+  version     String? @db.VarChar(64)
+  status      String? @default("draft") @db.VarChar(32)
+  icon        String? @db.VarChar(255)
+  category    String? @db.VarChar(64)
+  filePath    String? @map("file_path") @db.Text
+  createTime  BigInt? @map("create_time")
+  updateTime  BigInt? @map("update_time")
+
+  @@index([name])
+  @@index([status])
+  @@index([category])
+  @@map("app_manage")
 }

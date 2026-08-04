@@ -12,6 +12,7 @@ import { MiscModule } from "./modules/misc/misc.module";
 import { AiAssistantModule } from "./modules/ai-assistant/ai-assistant.module";
 import { LogsModule } from "./modules/logs/logs.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
+import { RbacModule } from "./modules/rbac/rbac.module";
 import { AuthGuard } from "./common/guards/auth.guard";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
@@ -33,6 +34,7 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
     AiAssistantModule,
     LogsModule,
     AnalyticsModule,
+    RbacModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

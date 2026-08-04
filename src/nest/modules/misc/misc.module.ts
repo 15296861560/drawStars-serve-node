@@ -9,6 +9,8 @@ import { AgoraController } from "./agora.controller";
 import { PayController } from "./pay.controller";
 import { ControllerController } from "./controller.controller";
 import { ControllerService } from "./controller.service";
+import { AppManageController } from "./app-manage.controller";
+import { AppManageService } from "./app-manage.service";
 
 @Module({
   controllers: [
@@ -21,7 +23,8 @@ import { ControllerService } from "./controller.service";
     AgoraController,
     PayController,
     ControllerController,
+    AppManageController,
   ],
-  providers: [ControllerService],
+  providers: [ControllerService, AppManageService],
 })
 export class MiscModule {}
