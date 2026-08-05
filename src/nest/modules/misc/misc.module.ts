@@ -11,6 +11,8 @@ import { ControllerController } from "./controller.controller";
 import { ControllerService } from "./controller.service";
 import { AppManageController } from "./app-manage.controller";
 import { AppManageService } from "./app-manage.service";
+import { NoticeManageController } from "./notice-manage.controller";
+import { NoticeManageService } from "./notice-manage.service";
 
 @Module({
   controllers: [
@@ -24,7 +26,8 @@ import { AppManageService } from "./app-manage.service";
     PayController,
     ControllerController,
     AppManageController,
+    NoticeManageController,
   ],
-  providers: [ControllerService, AppManageService],
+  providers: [ControllerService, AppManageService, NoticeManageService],
 })
 export class MiscModule {}

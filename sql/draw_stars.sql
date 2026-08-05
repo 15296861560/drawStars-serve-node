@@ -97,8 +97,30 @@ CREATE TABLE `notify`  (
   `notify_msg` blob NULL,
   `send_id` bigint(11) NULL DEFAULT NULL,
   `receive_id` bigint(11) NULL DEFAULT NULL,
-  PRIMARY KEY (`notifyI_id`) USING BTREE
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`notifyI_id`) USING BTREE,
+  INDEX `idx_notify_receive_read`(`receive_id`, `is_read`) USING BTREE,
+  INDEX `idx_notify_receive_time`(`receive_id`, `create_time`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 24 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for notice
+-- ----------------------------
+DROP TABLE IF EXISTS `notice`;
+CREATE TABLE `notice`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
+  `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT 'rich',
+  `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT 'draft',
+  `create_time` bigint(20) NULL DEFAULT NULL,
+  `update_time` bigint(20) NULL DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_notice_title`(`title`) USING BTREE,
+  INDEX `idx_notice_type`(`type`) USING BTREE,
+  INDEX `idx_notice_status`(`status`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for oauth_info
