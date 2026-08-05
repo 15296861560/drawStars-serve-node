@@ -3,6 +3,10 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { serializeBigInt } from "../../../lib/serialize";
 import Log, { LOG_TYPE } from "../../../public/provider/log";
+import {
+  normalizeHttpMethod,
+  normalizeOperationType,
+} from "../../../public/provider/log-operation";
 
 type QueryParams = {
   curPage?: number | string;
@@ -25,14 +29,15 @@ type QueryParams = {
   [key: string]: unknown;
 };
 
-/** 前端操作类型 → content 匹配关键词 */
+/** 前端操作类型 → content 匹配关键词（兼容历史混乱写法） */
 const OPERATION_KEYWORDS: Record<string, string[]> = {
-  insert: ["insert", "create", "register", "新增", "添加"],
-  update: ["update", "modify", "修改", "更新"],
-  delete: ["delete", "cancel", "删除", "移除"],
-  select: ["select", "query", "list", "查询", "获取"],
-  login: ["login", "登录", "signin"],
-  logout: ["logout", "登出", "signout"],
+  insert: ['"operation":"insert"', "insert", "create", "register", "新增", "添加"],
+  update: ['"operation":"update"', "update", "modify", "bind", "修改", "更新"],
+  delete: ['"operation":"delete"', "delete", "cancel", "删除", "移除"],
+  select: ['"operation":"select"', "select", "query", "list", "查询", "获取"],
+  login: ['"operation":"login"', "login", "登录", "signin"],
+  logout: ['"operation":"logout"', "logout", "登出", "signout"],
+  other: ['"operation":"other"'],
 };
 
 @Injectable()
@@ -309,6 +314,55 @@ export class LogsService {
     return pick(content.uid) || "";
   }
 
+  /** 接口路径与 query 拆分：路径列不含 ? 后参数 */
+  private stripQuery(url: string | null | undefined): string {
+    if (!url) return "";
+    const i = String(url).indexOf("?");
+    return i >= 0 ? String(url).slice(0, i) : String(url);
+  }
+
+  /** 请求接口展示：backend → 后端内部调用 */
+  private formatApiPath(path: string): string {
+    const p = String(path || "").trim();
+    if (!p) return "";
+    if (/^backend$/i.test(p)) return "后端内部调用";
+    return p;
+  }
+
+  /**
+   * IP 展示规范化：
+   * - hostname/backend 标记 → 后端模块
+   * - 去掉 Node IPv4-mapped IPv6 前缀 ::ffff:
+   */
+  private formatIp(ip: unknown): string {
+    let value = ip != null ? String(ip).trim() : "";
+    if (!value) return "";
+    if (/^backend$/i.test(value) || /^request$/i.test(value)) {
+      return "后端模块";
+    }
+    // ::ffff:127.0.0.1 → 127.0.0.1（IPv6 双栈下的 IPv4 映射地址）
+    if (value.toLowerCase().startsWith("::ffff:")) {
+      value = value.slice(7);
+    }
+    return value;
+  }
+
+  /** 参数列：优先 content.params，兼容历史 originalUrl 上的 query */
+  private resolveParams(
+    content: Record<string, unknown>,
+    originalUrl: string | null | undefined,
+  ): string {
+    if (typeof content.params === "string" && content.params) {
+      return content.params;
+    }
+    if (content.params != null && typeof content.params === "object") {
+      return JSON.stringify(content.params);
+    }
+    const raw = originalUrl ? String(originalUrl) : "";
+    const q = raw.includes("?") ? raw.slice(raw.indexOf("?") + 1) : "";
+    return q || "";
+  }
+
   private mapRow(row: {
     logId: bigint;
     logType: string | null;
@@ -319,25 +373,34 @@ export class LogsService {
   }) {
     const content = this.parseContent(row.content);
     const username = this.resolveUsername(content);
+    const apiPath = this.formatApiPath(
+      this.stripQuery(
+        (content.path as string | undefined) ?? row.originalUrl ?? "",
+      ),
+    );
+    const httpMethod = normalizeHttpMethod(content.method, content.operation);
+    const operation = normalizeOperationType(content, row.originalUrl);
+    const ip = this.formatIp(content.ip ?? row.hostname ?? "");
     return serializeBigInt({
       id: Number(row.logId),
       logId: Number(row.logId),
       logType: row.logType,
       hostname: row.hostname,
-      originalUrl: row.originalUrl,
+      originalUrl: apiPath,
       create_time: this.formatTime(row.createTime),
       createTime: this.formatTime(row.createTime),
       username,
       operator: content.operator ?? username,
-      operation: content.operation ?? content.method ?? "",
-      method: content.method ?? "",
-      params:
-        typeof content.params === "string"
-          ? content.params
-          : content.params
-            ? JSON.stringify(content.params)
+      operation,
+      method: httpMethod || "-",
+      action:
+        typeof content.action === "string"
+          ? content.action
+          : !httpMethod && content.method
+            ? String(content.method)
             : "",
-      ip: content.ip ?? row.hostname ?? "",
+      params: this.resolveParams(content, row.originalUrl),
+      ip,
       location: content.location ?? content.region ?? "",
       browser: content.browser ?? "",
       os: content.os ?? content.system ?? "",
@@ -358,14 +421,14 @@ export class LogsService {
           : ""),
       module: content.module ?? "",
       type: content.type ?? row.logType ?? "",
-      title: content.title ?? content.event ?? row.originalUrl ?? "",
+      title: content.title ?? content.event ?? apiPath ?? "",
       content:
         typeof content.content === "string"
           ? content.content
           : JSON.stringify(content),
       duration: content.duration ?? null,
       statusCode: content.statusCode ?? null,
-      path: content.path ?? row.originalUrl ?? "",
+      path: apiPath,
       raw: content,
     });
   }
@@ -385,16 +448,72 @@ export class LogsService {
       }),
     ]);
 
+    const list = rows.map((r) => this.mapRow(r));
+    await this.enrichNumericUsernames(list);
+
     return {
       status: true,
       msg: "查询成功",
       data: {
-        list: rows.map((r) => this.mapRow(r)),
+        list,
         total,
         curPage,
         pageSize,
       },
     };
+  }
+
+  /** 历史日志把 uid 写成了 username，查询时批量换成展示名 */
+  private isLikelyUserId(value: unknown): boolean {
+    return typeof value === "string"
+      ? /^\d+$/.test(value)
+      : typeof value === "number" && Number.isFinite(value);
+  }
+
+  private async enrichNumericUsernames(
+    list: Array<Record<string, unknown>>,
+  ): Promise<void> {
+    const ids = new Set<string>();
+    for (const row of list) {
+      if (this.isLikelyUserId(row.username)) ids.add(String(row.username));
+      if (this.isLikelyUserId(row.operator)) ids.add(String(row.operator));
+      const raw = row.raw as Record<string, unknown> | undefined;
+      if (raw && this.isLikelyUserId(raw.uid)) ids.add(String(raw.uid));
+    }
+    if (!ids.size) return;
+
+    const users = await this.prisma.client.user.findMany({
+      where: {
+        id: { in: [...ids].map((id) => BigInt(id)) },
+        deletedAt: null,
+      },
+      select: { id: true, name: true, accountAlias: true, phone: true },
+    });
+
+    const nameMap = new Map<string, string>();
+    for (const user of users) {
+      const name =
+        user.name?.trim() ||
+        user.accountAlias?.trim() ||
+        user.phone?.trim() ||
+        "";
+      if (name) nameMap.set(String(user.id), name);
+    }
+    if (!nameMap.size) return;
+
+    for (const row of list) {
+      let uidHint = "";
+      if (this.isLikelyUserId(row.username)) uidHint = String(row.username);
+      else if (this.isLikelyUserId(row.operator)) uidHint = String(row.operator);
+      else {
+        const raw = row.raw as Record<string, unknown> | undefined;
+        if (raw && this.isLikelyUserId(raw.uid)) uidHint = String(raw.uid);
+      }
+      const display = uidHint ? nameMap.get(uidHint) : undefined;
+      if (!display) continue;
+      if (this.isLikelyUserId(row.username)) row.username = display;
+      if (this.isLikelyUserId(row.operator)) row.operator = display;
+    }
   }
 
   async queryLoginLogs(params: QueryParams) {

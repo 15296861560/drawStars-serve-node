@@ -6,6 +6,7 @@ import {
   verifyAccessToken,
 } from "../../lib/access-token-service";
 import Log from "../provider/log";
+import { OP_TYPE } from "../provider/log-operation";
 import zhenzismsClient from "../provider/sms/zhenzismsProvider";
 import userRedisClient from "../db/redis/client";
 
@@ -13,6 +14,21 @@ const USER_TABLE_NAME = "user";
 const OAUTH_TABLE_NAME = "oauth_info";
 const BACKEND = "backend";
 const DEFAULT_PASSWORD = "@drawStars123";
+
+/** 业务层操作日志：method 留空（非 HTTP），operation 用语义类型，action 记具体动作 */
+function addOperateLog(
+  action: string,
+  operation: string,
+  content: Record<string, unknown>,
+) {
+  Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
+    method: "",
+    operation,
+    action,
+    path: BACKEND,
+    ...content,
+  });
+}
 
 export type UserRecord = Record<string, unknown> & {
   id?: number | bigint;
@@ -43,13 +59,13 @@ class UserService {
         const row = await prisma.oauthInfo.findFirst({
           where: { openId: String(value) },
         });
-        Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
-          method: "queryUserByCondition",
+        addOperateLog("queryUserByCondition", OP_TYPE.SELECT, {
           condition,
           value,
           username:
             (row as { name?: string } | null)?.name ||
             (condition === "name" || condition === "phone" ? String(value) : ""),
+          status: "success",
           result: true,
         });
         return row ? serializeBigInt(row) : null;
@@ -68,24 +84,24 @@ class UserService {
         where: where as { id?: bigint; phone?: string; name?: string },
       });
 
-      Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
-        method: "queryUserByCondition",
+      addOperateLog("queryUserByCondition", OP_TYPE.SELECT, {
         condition,
         value,
         username:
           row?.name ||
           (condition === "name" || condition === "phone" ? String(value) : ""),
+        status: "success",
         result: true,
       });
 
       return row ? serializeBigInt(row) : null;
     } catch (e) {
-      Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
-        method: "queryUserByCondition",
+      addOperateLog("queryUserByCondition", OP_TYPE.SELECT, {
         condition,
         value,
         username:
           condition === "name" || condition === "phone" ? String(value) : "",
+        status: "fail",
         result: e,
       });
       throw e;
@@ -135,18 +151,18 @@ class UserService {
       };
 
       const result = await prisma.user.create({ data });
-      Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
-        method: "createUser",
+      addOperateLog("createUser", OP_TYPE.INSERT, {
         username: String(userInfo.name || userInfo.phone || ""),
         userInfo: { ...userInfo, password: "***" },
+        status: "success",
         result: true,
       });
       return serializeBigInt(result);
     } catch (e) {
-      Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
-        method: "createUser",
+      addOperateLog("createUser", OP_TYPE.INSERT, {
         username: String(userInfo.name || userInfo.phone || ""),
         userInfo: { ...userInfo, password: "***" },
+        status: "fail",
         result: e,
       });
       throw e;
@@ -216,16 +232,16 @@ class UserService {
           updateTime: BigInt(nowDate),
         },
       });
-      Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
-        method: "createOauthUser",
+      addOperateLog("createOauthUser", OP_TYPE.INSERT, {
         oauthInfo,
+        status: "success",
         result: true,
       });
       return serializeBigInt(result);
     } catch (e) {
-      Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
-        method: "createOauthUser",
+      addOperateLog("createOauthUser", OP_TYPE.INSERT, {
         oauthInfo,
+        status: "fail",
         result: e,
       });
       throw e;
@@ -255,8 +271,8 @@ class UserService {
         open_id: thirdPartyId,
       });
     } catch (e) {
-      Log.addLog(Log.LOG_TYPE.OPERATE, BACKEND, BACKEND, {
-        method: "registerByOauth",
+      addOperateLog("registerByOauth", OP_TYPE.INSERT, {
+        status: "fail",
         result: e,
       });
       return false;
