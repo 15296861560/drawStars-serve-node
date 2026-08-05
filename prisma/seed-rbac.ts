@@ -34,6 +34,7 @@ const MENU_SEEDS: MenuSeed[] = [
     type: 2,
     path: "/home/manageHomePage/user",
     permission: "system:user:list",
+    icon: "UserFilled",
     sort: 1,
   },
   { key: "manage_user_create", parentKey: "manage_user", name: "新增用户", type: 3, permission: "system:user:create", sort: 1 },
@@ -47,6 +48,7 @@ const MENU_SEEDS: MenuSeed[] = [
     type: 2,
     path: "/home/manageHomePage/role",
     permission: "system:role:list",
+    icon: "Avatar",
     sort: 2,
   },
   { key: "manage_role_create", parentKey: "manage_role", name: "新增角色", type: 3, permission: "system:role:create", sort: 1 },
@@ -60,6 +62,7 @@ const MENU_SEEDS: MenuSeed[] = [
     type: 2,
     path: "/home/manageHomePage/menu",
     permission: "system:menu:list",
+    icon: "Menu",
     sort: 3,
   },
   { key: "manage_menu_create", parentKey: "manage_menu", name: "新增菜单", type: 3, permission: "system:menu:create", sort: 1 },
@@ -98,6 +101,7 @@ const MENU_SEEDS: MenuSeed[] = [
     type: 2,
     path: "/home/manageHomePage/points/overview",
     permission: "system:points:list",
+    icon: "DataBoard",
     sort: 1,
   },
   {
@@ -107,6 +111,7 @@ const MENU_SEEDS: MenuSeed[] = [
     type: 2,
     path: "/home/manageHomePage/points/rules",
     permission: "system:points:list",
+    icon: "SetUp",
     sort: 2,
   },
   {
@@ -116,6 +121,7 @@ const MENU_SEEDS: MenuSeed[] = [
     type: 2,
     path: "/home/manageHomePage/points/levels",
     permission: "system:points:list",
+    icon: "TrophyBase",
     sort: 3,
   },
   {
@@ -124,6 +130,7 @@ const MENU_SEEDS: MenuSeed[] = [
     name: "通知管理",
     type: 2,
     path: "/home/manageHomePage/notice",
+    icon: "Bell",
     sort: 5,
   },
   {
@@ -132,6 +139,7 @@ const MENU_SEEDS: MenuSeed[] = [
     name: "应用管理",
     type: 2,
     path: "/home/manageHomePage/app",
+    icon: "Grid",
     sort: 6,
   },
   {
@@ -140,6 +148,7 @@ const MENU_SEEDS: MenuSeed[] = [
     name: "日志管理",
     type: 2,
     path: "/home/manageHomePage/logs",
+    icon: "Document",
     sort: 7,
   },
   { key: "profile", name: "个人中心", type: 2, path: "/home/personalCenter/basicInfo", icon: "User", sort: 20 },
@@ -150,7 +159,7 @@ const MENU_SEEDS: MenuSeed[] = [
     type: 2,
     path: "/home/personalCenter/points",
     permission: "system:points:self",
-    icon: "Coin",
+    icon: "Wallet",
     sort: 1,
   },
 ];
