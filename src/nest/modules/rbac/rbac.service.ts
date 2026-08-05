@@ -77,6 +77,17 @@ export class RbacService {
       }
     }
 
+    // 超级管理员默认拥有全部权限码（不依赖 sys_role_menu 是否同步）
+    if (roleCodes.includes("super_admin")) {
+      const all = await this.prisma.client.sysMenu.findMany({
+        where: { status: 1, permission: { not: null } },
+        select: { permission: true },
+      });
+      for (const m of all) {
+        if (m.permission) permissionSet.add(m.permission);
+      }
+    }
+
     return {
       roleCodes,
       roleNames,
@@ -506,6 +517,26 @@ export class RbacService {
   }
 
   async getRoleMenuIds(roleId: number) {
+    const role = await this.prisma.client.sysRole.findUnique({
+      where: { id: BigInt(roleId) },
+    });
+    if (!role) {
+      return { status: false, msg: "角色不存在", data: [] };
+    }
+
+    // 超级管理员默认拥有全部菜单
+    if (role.code === "super_admin") {
+      await this.ensureSuperAdminOwnsAllMenus();
+      const all = await this.prisma.client.sysMenu.findMany({
+        select: { id: true },
+      });
+      return {
+        status: true,
+        msg: "ok",
+        data: all.map((m) => Number(m.id)),
+      };
+    }
+
     const rows = await this.prisma.client.sysRoleMenu.findMany({
       where: { roleId: BigInt(roleId) },
     });
@@ -517,6 +548,21 @@ export class RbacService {
   }
 
   async bindMenus(roleId: number, menuIds: number[]) {
+    const role = await this.prisma.client.sysRole.findUnique({
+      where: { id: BigInt(roleId) },
+    });
+    if (!role) return { status: false, msg: "角色不存在", data: null };
+
+    // 超级管理员始终绑定全部菜单，忽略传入勾选
+    if (role.code === "super_admin") {
+      await this.ensureSuperAdminOwnsAllMenus();
+      return {
+        status: true,
+        msg: "超级管理员默认拥有全部菜单权限",
+        data: true,
+      };
+    }
+
     await this.prisma.client.sysRoleMenu.deleteMany({
       where: { roleId: BigInt(roleId) },
     });
@@ -531,6 +577,39 @@ export class RbacService {
       });
     }
     return { status: true, msg: "绑定成功", data: true };
+  }
+
+  /** 将全部菜单同步绑定到超级管理员角色 */
+  async ensureSuperAdminOwnsAllMenus(extraMenuId?: bigint | number) {
+    const superRoles = await this.prisma.client.sysRole.findMany({
+      where: { code: "super_admin", status: 1 },
+      select: { id: true },
+    });
+    if (!superRoles.length) return;
+
+    const menus = await this.prisma.client.sysMenu.findMany({
+      select: { id: true },
+    });
+    const menuIds = new Set(menus.map((m) => m.id));
+    if (extraMenuId != null) menuIds.add(BigInt(extraMenuId));
+
+    for (const role of superRoles) {
+      const existing = await this.prisma.client.sysRoleMenu.findMany({
+        where: { roleId: role.id },
+        select: { menuId: true },
+      });
+      const have = new Set(existing.map((e) => e.menuId));
+      const missing = [...menuIds].filter((id) => !have.has(id));
+      if (missing.length) {
+        await this.prisma.client.sysRoleMenu.createMany({
+          data: missing.map((menuId) => ({
+            roleId: role.id,
+            menuId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
   }
 
   // ---------- Menu ----------
@@ -588,6 +667,8 @@ export class RbacService {
         updateTime: BigInt(now),
       },
     });
+    // 新建菜单自动授予超级管理员
+    await this.ensureSuperAdminOwnsAllMenus(row.id);
     return { status: true, msg: "创建成功", data: serializeBigInt(row) };
   }
 

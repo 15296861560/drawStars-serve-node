@@ -28,6 +28,17 @@ export class AuthGuard implements CanActivate {
       context.getClass(),
     ]);
     if (isPublic || !isTokenVerifyEnabled()) {
+      // 未强制验签时仍尽量解析 token，供 @CurrentUser / 业务取 uid
+      if (!isPublic) {
+        const request = context.switchToHttp().getRequest();
+        const token = getAccessTokenFromRequest(request);
+        if (token && isTokenServiceReady()) {
+          const tokenInfo = verifyAccessToken(token);
+          if (tokenInfo) {
+            request.auth = { ...(request.auth || {}), ...tokenInfo, token };
+          }
+        }
+      }
       return true;
     }
 

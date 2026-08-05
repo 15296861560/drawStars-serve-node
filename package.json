@@ -17,6 +17,8 @@
     "prisma:seed-rbac": "tsx prisma/seed-rbac.ts",
     "prisma:rbac-tables": "prisma db execute --file sql/rbac_tables.sql --schema prisma/schema.prisma",
     "prisma:app-manage-table": "prisma db execute --file sql/app_manage.sql --schema prisma/schema.prisma",
+    "prisma:points-tables": "prisma db execute --file sql/points_tables.sql --schema prisma/schema.prisma",
+    "seed:points-menus": "node scripts/seed-points-menus-via-api.js",
     "db:sync": "prisma db push"
   },
   "dependencies": {

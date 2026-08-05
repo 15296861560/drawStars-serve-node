@@ -301,3 +301,135 @@ model AppManage {
   @@index([category])
   @@map("app_manage")
 }
+
+/// 积分账户
+model PointsAccount {
+  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId          BigInt   @map("user_id") @db.UnsignedBigInt
+  pointsType      String   @default("GENERAL") @map("points_type") @db.VarChar(32)
+  availablePoints Int      @default(0) @map("available_points")
+  frozenPoints    Int      @default(0) @map("frozen_points")
+  totalEarned     Int      @default(0) @map("total_earned")
+  totalSpent      Int      @default(0) @map("total_spent")
+  level           Int      @default(1) @db.TinyInt
+  levelName       String   @default("普通会员") @map("level_name") @db.VarChar(32)
+  status          String   @default("ACTIVE") @db.VarChar(16)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  transactions PointsTransaction[]
+
+  @@unique([userId, pointsType], map: "uk_user_points_type")
+  @@index([userId], map: "idx_user_id")
+  @@index([status], map: "idx_status")
+  @@map("points_account")
+}
+
+/// 积分交易记录
+model PointsTransaction {
+  id            BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  transactionNo String    @unique(map: "uk_transaction_no") @map("transaction_no") @db.VarChar(32)
+  userId        BigInt    @map("user_id") @db.UnsignedBigInt
+  accountId     BigInt    @map("account_id") @db.UnsignedBigInt
+  type          String    @db.VarChar(16)
+  points        Int
+  balanceBefore Int       @map("balance_before")
+  balanceAfter  Int       @map("balance_after")
+  source        String    @db.VarChar(32)
+  referenceId   String?   @map("reference_id") @db.VarChar(64)
+  referenceType String?   @map("reference_type") @db.VarChar(32)
+  description   String    @db.VarChar(255)
+  expireAt      DateTime? @map("expire_at")
+  status        String    @default("COMPLETED") @db.VarChar(16)
+  extraData     Json?     @map("extra_data")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  account PointsAccount @relation(fields: [accountId], references: [id])
+
+  @@index([userId], map: "idx_user_id")
+  @@index([accountId], map: "idx_account_id")
+  @@index([type], map: "idx_type")
+  @@index([source], map: "idx_source")
+  @@index([referenceType, referenceId], map: "idx_reference")
+  @@index([status], map: "idx_status")
+  @@index([createdAt], map: "idx_created_at")
+  @@index([expireAt], map: "idx_expire_at")
+  @@map("points_transaction")
+}
+
+/// 积分规则
+model PointsRule {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String    @db.VarChar(64)
+  code        String    @unique(map: "uk_code") @db.VarChar(32)
+  source      String    @db.VarChar(32)
+  pointsType  String    @default("GENERAL") @map("points_type") @db.VarChar(32)
+  pointsValue Decimal   @map("points_value") @db.Decimal(10, 4)
+  calcMethod  String    @default("FIXED") @map("calc_method") @db.VarChar(16)
+  dailyLimit  Int       @default(0) @map("daily_limit")
+  monthlyLimit Int      @default(0) @map("monthly_limit")
+  singleLimit Int       @default(0) @map("single_limit")
+  validDays   Int       @default(365) @map("valid_days")
+  description String?   @db.VarChar(255)
+  enabled     Int       @default(1) @db.TinyInt
+  priority    Int       @default(0)
+  startTime   DateTime? @map("start_time")
+  endTime     DateTime? @map("end_time")
+  extraConfig Json?     @map("extra_config")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([source], map: "idx_source")
+  @@index([enabled], map: "idx_enabled")
+  @@index([priority], map: "idx_priority")
+  @@map("points_rule")
+}
+
+/// 积分等级配置
+model PointsLevel {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  level          Int      @unique(map: "uk_level") @db.TinyInt
+  name           String   @db.VarChar(32)
+  icon           String?  @db.VarChar(32)
+  requiredPoints Int      @map("required_points")
+  benefits       Json?
+  description    String?  @db.VarChar(255)
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([requiredPoints], map: "idx_required_points")
+  @@map("points_level")
+}
+
+/// 签到记录
+model PointsCheckIn {
+  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId          BigInt   @map("user_id") @db.UnsignedBigInt
+  checkInDate     DateTime @map("check_in_date") @db.Date
+  pointsEarned    Int      @map("points_earned")
+  consecutiveDays Int      @default(1) @map("consecutive_days")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, checkInDate], map: "uk_user_date")
+  @@index([userId], map: "idx_user_id")
+  @@index([checkInDate], map: "idx_check_in_date")
+  @@map("points_check_in")
+}
+
+/// 用户积分限制记录
+model PointsUserLimit {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId     BigInt   @map("user_id") @db.UnsignedBigInt
+  ruleCode   String   @map("rule_code") @db.VarChar(32)
+  periodType String   @map("period_type") @db.VarChar(16)
+  periodKey  String   @map("period_key") @db.VarChar(16)
+  count      Int      @default(0)
+  points     Int      @default(0)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([userId, ruleCode, periodType, periodKey], map: "uk_user_rule_period")
+  @@index([userId], map: "idx_user_id")
+  @@index([periodKey], map: "idx_period_key")
+  @@map("points_user_limit")
+}
