@@ -40,8 +40,12 @@ export class PointsService {
   }
 
   private todayDateOnly(): Date {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const now = new Date()
+    // 使用本地日历日的 UTC 零点，避免 @db.Date 因时区偏移写成前一天，
+    // 导致 findUnique 查不到、create 却触发唯一约束而误报「今日已签到」
+    return new Date(
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+    )
   }
 
   private formatDateKey(d: Date): string {
@@ -1066,6 +1070,8 @@ export class PointsService {
         description: `每日签到奖励（连续${consecutiveDays}天）`,
         immediate: true,
         ruleCode: "DAILY_CHECK_IN",
+        // 签到日唯一性已由 points_check_in 约束，避免与规则日限额日期键不一致导致误拦
+        skipRuleLimit: true,
       });
 
       return {
