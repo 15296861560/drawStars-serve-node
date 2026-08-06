@@ -712,3 +712,155 @@ model SurveyReportView {
   @@index([surveyId], map: "idx_report_survey")
   @@map("survey_report_view")
 }
+
+/// Task category
+model TaskCategory {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name      String   @db.VarChar(64)
+  code      String   @unique(map: "uk_task_category_code") @db.VarChar(32)
+  parentId  BigInt?  @map("parent_id") @db.UnsignedBigInt
+  sort      Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  tasks TaskDef[]
+
+  @@index([parentId], map: "idx_task_category_parent")
+  @@index([sort], map: "idx_task_category_sort")
+  @@map("task_category")
+}
+
+/// Task definition (avoid reserved name Task)
+model TaskDef {
+  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  taskNo           String    @unique(map: "uk_task_def_no") @map("task_no") @db.VarChar(32)
+  title            String    @db.VarChar(128)
+  description      String?   @db.Text
+  icon             String?   @db.VarChar(64)
+  categoryId       BigInt    @map("category_id") @db.UnsignedBigInt
+  taskType         String    @map("task_type") @db.VarChar(32)
+  conditionType    String    @map("condition_type") @db.VarChar(32)
+  conditionConfig  Json?     @map("condition_config")
+  difficulty       Int       @default(1) @db.TinyInt
+  tags             Json?
+  rewardConfig     Json      @map("reward_config")
+  targetCount      Int       @default(1) @map("target_count")
+  status           String    @default("DRAFT") @db.VarChar(16)
+  assignMode       String    @default("PUBLIC") @map("assign_mode") @db.VarChar(32)
+  completionMode   String?   @map("completion_mode") @db.VarChar(16)
+  unlockMode       String?   @map("unlock_mode") @db.VarChar(16)
+  children         Json?
+  startTime        DateTime? @map("start_time")
+  endTime          DateTime? @map("end_time")
+  dailyLimit       Int?      @map("daily_limit")
+  totalLimit       Int?      @map("total_limit")
+  acceptValidHours Int?      @map("accept_valid_hours")
+  rejectReason     String?   @map("reject_reason") @db.VarChar(255)
+  createdBy        BigInt    @map("created_by") @db.UnsignedBigInt
+  priority         Int       @default(0)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  category      TaskCategory       @relation(fields: [categoryId], references: [id])
+  instances     TaskInstance[]
+  claims        TaskRewardClaim[]
+  notifications TaskNotification[]
+
+  @@index([categoryId], map: "idx_task_def_category")
+  @@index([status], map: "idx_task_def_status")
+  @@index([taskType], map: "idx_task_def_type")
+  @@index([priority], map: "idx_task_def_priority")
+  @@index([createdBy], map: "idx_task_def_creator")
+  @@map("task_def")
+}
+
+/// User task instance
+model TaskInstance {
+  id            BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  taskId        BigInt    @map("task_id") @db.UnsignedBigInt
+  userId        BigInt    @map("user_id") @db.UnsignedBigInt
+  status        String    @default("IN_PROGRESS") @db.VarChar(32)
+  currentCount  Int       @default(0) @map("current_count")
+  targetCount   Int       @default(1) @map("target_count")
+  rewardClaimed Int       @default(0) @map("reward_claimed") @db.TinyInt
+  acceptedAt    DateTime  @default(now()) @map("accepted_at")
+  completedAt   DateTime? @map("completed_at")
+  expiredAt     DateTime? @map("expired_at")
+  submitPayload Json?     @map("submit_payload")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  task   TaskDef           @relation(fields: [taskId], references: [id])
+  claims TaskRewardClaim[]
+
+  @@unique([userId, taskId], map: "uk_task_instance_user_task")
+  @@index([userId], map: "idx_task_instance_user")
+  @@index([taskId], map: "idx_task_instance_task")
+  @@index([status], map: "idx_task_instance_status")
+  @@map("task_instance")
+}
+
+/// Physical reward claim / shipping
+model TaskRewardClaim {
+  id               BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  instanceId       BigInt   @map("instance_id") @db.UnsignedBigInt
+  taskId           BigInt   @map("task_id") @db.UnsignedBigInt
+  userId           BigInt   @map("user_id") @db.UnsignedBigInt
+  itemName         String   @map("item_name") @db.VarChar(128)
+  status           String   @default("PENDING_ADDRESS") @db.VarChar(32)
+  address          Json?
+  logisticsCompany String?  @map("logistics_company") @db.VarChar(64)
+  trackingNo       String?  @map("tracking_no") @db.VarChar(64)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  instance TaskInstance @relation(fields: [instanceId], references: [id])
+  task     TaskDef      @relation(fields: [taskId], references: [id])
+
+  @@unique([instanceId, itemName], map: "uk_task_claim_instance_item")
+  @@index([userId], map: "idx_task_claim_user")
+  @@index([taskId], map: "idx_task_claim_task")
+  @@index([status], map: "idx_task_claim_status")
+  @@map("task_reward_claim")
+}
+
+/// Task notification
+model TaskNotification {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId    BigInt   @map("user_id") @db.UnsignedBigInt
+  taskId    BigInt?  @map("task_id") @db.UnsignedBigInt
+  title     String   @db.VarChar(128)
+  content   String   @db.VarChar(512)
+  type      String   @db.VarChar(32)
+  read      Int      @default(0) @db.TinyInt
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task TaskDef? @relation(fields: [taskId], references: [id])
+
+  @@index([userId], map: "idx_task_notify_user")
+  @@index([read], map: "idx_task_notify_read")
+  @@index([createdAt], map: "idx_task_notify_created")
+  @@map("task_notification")
+}
+
+model TaskRewardTemplate {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name         String   @db.VarChar(64)
+  rewardConfig Json     @map("reward_config")
+  createdBy    BigInt   @map("created_by") @db.UnsignedBigInt
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("task_reward_template")
+}
+
+model TaskTemplate {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name      String   @db.VarChar(64)
+  payload   Json
+  createdBy BigInt   @map("created_by") @db.UnsignedBigInt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("task_template")
+}

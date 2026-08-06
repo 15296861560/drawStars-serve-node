@@ -14,6 +14,7 @@ import { LogsModule } from "./modules/logs/logs.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { PointsModule } from "./modules/points/points.module";
+import { TaskModule } from "./modules/task/task.module";
 import { SurveyModule } from "./modules/survey/survey.module";
 import { AuthGuard } from "./common/guards/auth.guard";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
@@ -38,6 +39,7 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
     AnalyticsModule,
     RbacModule,
     PointsModule,
+    TaskModule,
     SurveyModule,
   ],
   providers: [
