@@ -3,6 +3,7 @@ import { TestController } from "./test.controller";
 import { ResourceController } from "./resource.controller";
 import { NotifyController } from "./notify.controller";
 import { BaiduController } from "./baidu.controller";
+import { AmapController } from "./amap.controller";
 import { StatisticsController } from "./statistics.controller";
 import { TranslateController } from "./translate.controller";
 import { AgoraController } from "./agora.controller";
@@ -20,6 +21,7 @@ import { NoticeManageService } from "./notice-manage.service";
     ResourceController,
     NotifyController,
     BaiduController,
+    AmapController,
     StatisticsController,
     TranslateController,
     AgoraController,
