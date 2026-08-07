@@ -1,0 +1,14 @@
+node_modules
+dist
+uploadDir
+.git
+.github
+.env
+.env.*
+!.env.example
+*.log
+*.bat
+.idea
+.vscode
+coverage
+deploy

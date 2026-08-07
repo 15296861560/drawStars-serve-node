@@ -3,10 +3,10 @@ import config from "./publish-config";
 import Log from "../public/provider/log";
 
 const port = config.redis_port;
-const ip = "127.0.0.1";
+const host = config.redis_host;
 
 const redisClient: RedisClientType = createClient({
-  url: `redis://${ip}:${port}`,
+  url: `redis://${host}:${port}`,
 });
 
 redisClient.on("ready", () => {

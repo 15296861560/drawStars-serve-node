@@ -1,0 +1,75 @@
+# 构建并推送 API 镜像到 GHCR，再通过 Watchtower Webhook 通知绿联 NAS 更新
+# Secrets:
+#   NAS_WATCHTOWER_URL    例如 http://nas.example.com:8080/v1/update
+#   NAS_WATCHTOWER_TOKEN  与 deploy/.env 中 WATCHTOWER_HTTP_API_TOKEN 一致
+
+name: Deploy API image
+
+on:
+  push:
+    branches: [master, develop]
+    paths-ignore:
+      - '**.md'
+      - 'deploy/**'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: drawstars-api
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=
+            type=ref,event=branch
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trigger NAS Watchtower webhook
+        env:
+          NAS_WATCHTOWER_URL: ${{ secrets.NAS_WATCHTOWER_URL }}
+          NAS_WATCHTOWER_TOKEN: ${{ secrets.NAS_WATCHTOWER_TOKEN }}
+        run: |
+          if [ -z "$NAS_WATCHTOWER_URL" ]; then
+            echo "NAS_WATCHTOWER_URL not set, skip webhook"
+            exit 0
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${NAS_WATCHTOWER_TOKEN}" \
+            "${NAS_WATCHTOWER_URL}"

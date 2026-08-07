@@ -1,0 +1,116 @@
+# 绿联 NAS 部署示例：复制到 NAS 目录后填写 .env，再 docker compose up -d
+# 默认端口对齐后端 release：API 8010 / WS 8020 / Notify 8030 / Redis 6379 / MySQL 3306
+#
+# MySQL 两种模式（见 .env 中 MYSQL_MODE）：
+#   external（默认）— 直连 NAS 上已有 MySQL，不启动本文件中的 mysql 服务
+#   bundled         — 随本 stack 部署 mysql（需 COMPOSE_PROFILES=with-mysql）
+
+services:
+  mysql:
+    profiles: [with-mysql]
+    image: mysql:8.4
+    container_name: drawstars-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_change_me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-draw_stars}
+      MYSQL_USER: ${MYSQL_USER:-drawStars}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-Admin_123}
+    ports:
+      - "${MYSQL_HOST_PORT:-3306}:3306"
+    volumes:
+      - drawstars-mysql-data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-uroot",
+          "-p${MYSQL_ROOT_PASSWORD:-root_change_me}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: drawstars-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    volumes:
+      - drawstars-redis-data:/data
+
+  api:
+    image: ${API_IMAGE:-ghcr.io/15296861560/drawstars-api:latest}
+    container_name: drawstars-api
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      # external：填 NAS 已有 MySQL 地址；bundled：保持 mysql（compose 服务名）
+      MYSQL_HOST: ${MYSQL_HOST:-mysql}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-drawStars}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-Admin_123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-draw_stars}
+      DATABASE_URL: ${DATABASE_URL:-}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVE_PORT: ${SERVE_PORT:-8010}
+      WS_PORT: ${WS_PORT:-8020}
+      NOTIFY_PORT: ${NOTIFY_PORT:-8030}
+      UPLOAD_DIR: /app/uploadDir
+      TOKEN_VERIFY: ${TOKEN_VERIFY:-false}
+    ports:
+      - "${SERVE_HOST_PORT:-8010}:${SERVE_PORT:-8010}"
+      - "${WS_HOST_PORT:-8020}:${WS_PORT:-8020}"
+      - "${NOTIFY_HOST_PORT:-8030}:${NOTIFY_PORT:-8030}"
+    volumes:
+      - drawstars-upload:/app/uploadDir
+    # 若已有 MySQL 在其它 compose 网络，取消注释并填写网络名
+    # networks:
+    #   - default
+    #   - mysql_net
+
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/15296861560/drawstars-web:latest}
+    container_name: drawstars-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      API_UPSTREAM: ${API_UPSTREAM:-api:8010}
+    ports:
+      - "${WEB_HOST_PORT:-80}:80"
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: drawstars-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_HTTP_API_UPDATE: "true"
+      WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_HTTP_API_TOKEN:?set WATCHTOWER_HTTP_API_TOKEN}
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "false"
+    ports:
+      - "${WATCHTOWER_HOST_PORT:-8080}:8080"
+    command: --http-api-update drawstars-web drawstars-api
+
+# networks:
+#   mysql_net:
+#     external: true
+#     name: ${MYSQL_EXTERNAL_NETWORK:-your-mysql-network}
+
+volumes:
+  drawstars-mysql-data:
+  drawstars-redis-data:
+  drawstars-upload:
