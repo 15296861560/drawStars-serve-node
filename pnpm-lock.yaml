@@ -60,8 +60,8 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
       drawstarts-notify-serve:
-        specifier: ^0.0.4
-        version: 0.0.4
+        specifier: ^0.2.0
+        version: 0.2.0
       express:
         specifier: ^4.18.1
         version: 4.22.2
@@ -1151,9 +1151,9 @@ packages:
     resolution: {integrity: sha512-k8DaKGP6r1G30Lx8V4+pCsLzKr8vLmV2paqEj1Y55GdAgJuIqpRp5FfajGF8KtwMxCz9qJc6wUIJnm053d/WCw==}
     engines: {node: '>=12'}
 
-  drawstarts-notify-serve@0.0.4:
-    resolution: {integrity: sha512-IJ+YdP3sP0fKjpUPTvNuMwaDwDz/ywvCBMIn1kEIKa8/yrshFYI2qpFFdXnIMM/Lvyz1RAJjFpwRcYqTMLS+dQ==}
-    engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
+  drawstarts-notify-serve@0.2.0:
+    resolution: {integrity: sha512-K3o8qPC7B418A2/1wL6nApGVW3xpN29EOyw3vpJxqZCZIj07Dr/mydrvlHNHftG3ERaPyf/+nBaAVW6BW/mZRw==}
+    engines: {node: '>=16.0.0'}
 
   duck@0.1.12:
     resolution: {integrity: sha512-wkctla1O6VfP89gQ+J/yDesM0S7B7XLXjKGzXxMDVFg7uEn706niAtyYovKbyq1oT9YwDcly721/iUWoc8MVRg==}
@@ -3104,9 +3104,8 @@ snapshots:
 
   dotenv@17.4.1: {}
 
-  drawstarts-notify-serve@0.0.4:
+  drawstarts-notify-serve@0.2.0:
     dependencies:
-      lodash: 4.18.1
       ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
