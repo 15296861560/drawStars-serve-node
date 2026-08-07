@@ -1,0 +1,36 @@
+# 将 GitHub 仓库自动镜像同步到 Gitee
+# 需在仓库 Settings → Secrets and variables → Actions 中配置：
+#   GITEE_PRIVATE_KEY  Gitee SSH 私钥（对应公钥已添加到 Gitee）
+#   GITEE_TOKEN        Gitee 私人令牌（用于自动创建不存在的仓库）
+
+name: Sync to Gitee
+
+on:
+  push:
+  delete:
+  create:
+  workflow_dispatch:
+  schedule:
+    # 每天 UTC 01:00（北京时间 09:00）兜底同步一次
+    - cron: '0 1 * * *'
+
+concurrency:
+  group: sync-gitee
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror GitHub repo to Gitee
+        uses: Yikun/hub-mirror-action@v1.5
+        with:
+          src: github/15296861560
+          dst: gitee/lgy-lgy
+          dst_key: ${{ secrets.GITEE_PRIVATE_KEY }}
+          dst_token: ${{ secrets.GITEE_TOKEN }}
+          account_type: user
+          clone_style: https
+          static_list: 'drawStars-serve-node'
+          force_update: true
+          debug: true
