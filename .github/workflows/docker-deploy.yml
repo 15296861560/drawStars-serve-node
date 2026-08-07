@@ -1,7 +1,4 @@
-# 构建并推送 API 镜像到 GHCR（amd64 + arm64 原生构建），再通知 NAS Watchtower
-# Secrets:
-#   NAS_WATCHTOWER_URL    例如 http://nas.example.com:8080/v1/update
-#   NAS_WATCHTOWER_TOKEN  与 deploy/.env 中 WATCHTOWER_HTTP_API_TOKEN 一致
+# 构建并推送 API 镜像到 GHCR（amd64 + arm64 原生构建）
 
 name: Deploy API image
 
@@ -117,16 +114,3 @@ jobs:
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
-
-      - name: Trigger NAS Watchtower webhook
-        env:
-          NAS_WATCHTOWER_URL: ${{ secrets.NAS_WATCHTOWER_URL }}
-          NAS_WATCHTOWER_TOKEN: ${{ secrets.NAS_WATCHTOWER_TOKEN }}
-        run: |
-          if [ -z "$NAS_WATCHTOWER_URL" ]; then
-            echo "NAS_WATCHTOWER_URL not set, skip webhook"
-            exit 0
-          fi
-          curl -fsS -X POST \
-            -H "Authorization: Bearer ${NAS_WATCHTOWER_TOKEN}" \
-            "${NAS_WATCHTOWER_URL}"

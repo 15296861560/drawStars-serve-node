@@ -90,23 +90,6 @@ services:
     ports:
       - "${WEB_HOST_PORT:-8088}:80"
 
-  watchtower:
-    # 绿联 Docker API 较新，需较新的 Watchtower（旧版会报 client version 1.25 too old）
-    image: ${WATCHTOWER_IMAGE:-containrrr/watchtower:1.7.1}
-    container_name: drawstars-watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      WATCHTOWER_HTTP_API_UPDATE: "true"
-      WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_HTTP_API_TOKEN:?set WATCHTOWER_HTTP_API_TOKEN}
-      WATCHTOWER_CLEANUP: "true"
-      WATCHTOWER_INCLUDE_STOPPED: "false"
-      DOCKER_API_VERSION: ${DOCKER_API_VERSION:-1.44}
-    ports:
-      - "${WATCHTOWER_HOST_PORT:-8080}:8080"
-    command: --http-api-update drawstars-web drawstars-api
-
 # networks:
 #   mysql_net:
 #     external: true
