@@ -12,3 +12,5 @@ uploadDir
 .vscode
 coverage
 deploy
+public/compress
+**/node_modules

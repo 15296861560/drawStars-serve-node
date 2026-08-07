@@ -9,6 +9,8 @@ COPY prisma ./prisma
 RUN pnpm install --frozen-lockfile
 COPY tsconfig.json ./
 COPY src ./src
+# 运行时 require 的根目录 JS（baidu/md5、agora/AccessToken 等）
+COPY public ./public
 RUN pnpm exec prisma generate \
   && pnpm exec tsc \
   && pnpm prune --prod --ignore-scripts
@@ -21,6 +23,7 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/public ./public
 RUN mkdir -p /app/uploadDir
 EXPOSE 8010 8020 8030
 CMD ["node", "dist/main.js"]
