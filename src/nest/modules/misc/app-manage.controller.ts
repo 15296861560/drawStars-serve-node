@@ -60,4 +60,14 @@ export class AppManageController {
   publish(@Param("id") id: string) {
     return this.appManageService.publish(Number(id));
   }
+
+  @Get("versions/:id")
+  versions(@Param("id") id: string) {
+    return this.appManageService.versions(Number(id));
+  }
+
+  @Post("offline/:id")
+  offline(@Param("id") id: string) {
+    return this.appManageService.offline(Number(id));
+  }
 }

@@ -68,6 +68,9 @@ model SysMenu {
   component  String?       @db.VarChar(255)
   permission String?       @db.VarChar(128)
   icon       String?       @db.VarChar(64)
+  client     String?       @default("pc") @db.VarChar(32)
+  moduleCode String?       @map("module_code") @db.VarChar(64)
+  isTab      Int?          @default(0) @map("is_tab") @db.TinyInt
   sort       Int           @default(0)
   visible    Int           @default(1) @db.TinyInt
   status     Int           @default(1) @db.TinyInt
@@ -76,6 +79,7 @@ model SysMenu {
   roleMenus  SysRoleMenu[]
 
   @@index([parentId])
+  @@index([client])
   @@map("sys_menu")
 }
 
@@ -286,20 +290,28 @@ model AiMessage {
 
 /// 应用管理（产品/安装包目录，区别于 app_info 凭证配置）
 model AppManage {
-  id          BigInt  @id @default(autoincrement())
-  name        String  @db.VarChar(128)
-  description String? @db.VarChar(500)
-  version     String? @db.VarChar(64)
-  status      String? @default("draft") @db.VarChar(32)
-  icon        String? @db.VarChar(255)
-  category    String? @db.VarChar(64)
-  filePath    String? @map("file_path") @db.Text
-  createTime  BigInt? @map("create_time")
-  updateTime  BigInt? @map("update_time")
+  id              BigInt  @id @default(autoincrement())
+  name            String  @db.VarChar(128)
+  description     String? @db.VarChar(500)
+  version         String? @db.VarChar(64)
+  status          String? @default("draft") @db.VarChar(32)
+  icon            String? @db.VarChar(255)
+  category        String? @db.VarChar(64)
+  filePath        String? @map("file_path") @db.Text
+  moduleCode      String? @map("module_code") @db.VarChar(64)
+  platforms       String? @db.VarChar(255)
+  moduleUrl       String? @map("module_url") @db.VarChar(512)
+  checksum        String? @db.VarChar(128)
+  releaseNotes    String? @map("release_notes") @db.VarChar(1000)
+  forceUpdate     Int?    @default(0) @map("force_update") @db.TinyInt
+  minShellVersion String? @map("min_shell_version") @db.VarChar(32)
+  createTime      BigInt? @map("create_time")
+  updateTime      BigInt? @map("update_time")
 
   @@index([name])
   @@index([status])
   @@index([category])
+  @@index([moduleCode])
   @@map("app_manage")
 }
 
@@ -864,4 +876,173 @@ model TaskTemplate {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@map("task_template")
+}
+
+/// Mobile published module catalog (synced from app_manage on publish)
+model MobileModule {
+  id            BigInt  @id @default(autoincrement())
+  moduleCode    String  @unique @map("module_code") @db.VarChar(64)
+  name          String  @db.VarChar(128)
+  description   String? @db.VarChar(500)
+  icon          String? @db.VarChar(255)
+  category      String? @db.VarChar(64)
+  platforms     String? @db.VarChar(255)
+  status        String? @default("draft") @db.VarChar(32)
+  latestVersion String? @map("latest_version") @db.VarChar(64)
+  moduleUrl     String? @map("module_url") @db.VarChar(512)
+  appManageId   BigInt? @map("app_manage_id")
+  createTime    BigInt? @map("create_time")
+  updateTime    BigInt? @map("update_time")
+
+  @@index([status])
+  @@map("mobile_module")
+}
+
+model MobileModuleVersion {
+  id           BigInt  @id @default(autoincrement())
+  moduleCode   String  @map("module_code") @db.VarChar(64)
+  version      String  @db.VarChar(64)
+  platforms    String? @db.VarChar(255)
+  moduleUrl    String? @map("module_url") @db.VarChar(512)
+  filePath     String? @map("file_path") @db.Text
+  checksum     String? @db.VarChar(128)
+  releaseNotes String? @map("release_notes") @db.VarChar(1000)
+  forceUpdate  Int?    @default(0) @map("force_update") @db.TinyInt
+  status       String? @default("draft") @db.VarChar(32)
+  createTime   BigInt? @map("create_time")
+
+  @@unique([moduleCode, version])
+  @@index([moduleCode])
+  @@map("mobile_module_version")
+}
+
+model MobileModulePermission {
+  id             BigInt  @id @default(autoincrement())
+  moduleCode     String  @map("module_code") @db.VarChar(64)
+  permissionCode String  @map("permission_code") @db.VarChar(128)
+  createTime     BigInt? @map("create_time")
+
+  @@unique([moduleCode, permissionCode])
+  @@index([moduleCode])
+  @@map("mobile_module_permission")
+}
+
+model UserModuleInstall {
+  id         BigInt  @id @default(autoincrement())
+  userId     BigInt  @map("user_id")
+  moduleCode String  @map("module_code") @db.VarChar(64)
+  version    String? @db.VarChar(64)
+  platform   String? @db.VarChar(32)
+  mode       String? @default("soft") @db.VarChar(16)
+  updateTime BigInt? @map("update_time")
+
+  @@unique([userId, moduleCode])
+  @@map("user_module_install")
+}
+
+model MobileShellRelease {
+  id            BigInt  @id @default(autoincrement())
+  platform      String  @db.VarChar(32)
+  channel       String? @default("default") @db.VarChar(64)
+  version       String  @db.VarChar(64)
+  buildNumber   String? @map("build_number") @db.VarChar(32)
+  forceUpdate   Int?    @default(0) @map("force_update") @db.TinyInt
+  packageUrl    String? @map("package_url") @db.VarChar(512)
+  releaseNotes  String? @map("release_notes") @db.VarChar(1000)
+  status        String? @default("published") @db.VarChar(32)
+  createTime    BigInt? @map("create_time")
+
+  @@index([platform, channel])
+  @@map("mobile_shell_release")
+}
+
+model MobileModuleTicket {
+  ticket     String  @id @db.VarChar(64)
+  userId     BigInt? @map("user_id")
+  moduleCode String  @map("module_code") @db.VarChar(64)
+  platform   String? @db.VarChar(32)
+  expireAt   BigInt  @map("expire_at")
+  used       Int     @default(0) @db.TinyInt
+
+  @@map("mobile_module_ticket")
+}
+
+
+model MobileFeedback {
+  id               BigInt  @id @default(autoincrement())
+  userId           BigInt? @map("user_id")
+  content          String  @db.Text
+  contact          String? @db.VarChar(128)
+  diagnosticsJson  String? @map("diagnostics_json") @db.Text
+  status           String? @default("open") @db.VarChar(32)
+  createTime       BigInt? @map("create_time")
+
+  @@map("mobile_feedback")
+}
+
+model MobileOpsBanner {
+  id         BigInt  @id @default(autoincrement())
+  title      String  @db.VarChar(128)
+  imageUrl   String? @map("image_url") @db.VarChar(512)
+  link       String? @db.VarChar(512)
+  platforms  String? @db.VarChar(255)
+  roleCodes  String? @map("role_codes") @db.VarChar(255)
+  sort       Int?    @default(0)
+  status     String? @default("published") @db.VarChar(32)
+  createTime BigInt? @map("create_time")
+
+  @@map("mobile_ops_banner")
+}
+
+model MobilePreviewToken {
+  token      String  @id @db.VarChar(64)
+  moduleCode String  @map("module_code") @db.VarChar(64)
+  moduleUrl  String  @map("module_url") @db.VarChar(512)
+  name       String? @db.VarChar(128)
+  expireAt   BigInt  @map("expire_at")
+  createBy   BigInt? @map("create_by")
+
+  @@map("mobile_preview_token")
+}
+
+model MobileDebugWhitelist {
+  id         BigInt  @id @default(autoincrement())
+  pattern    String  @db.VarChar(512)
+  remark     String? @db.VarChar(255)
+  status     Int?    @default(1) @db.TinyInt
+  createTime BigInt? @map("create_time")
+
+  @@map("mobile_debug_whitelist")
+}
+
+model MobilePushDevice {
+  id            BigInt  @id @default(autoincrement())
+  userId        BigInt? @map("user_id")
+  token         String  @db.VarChar(255)
+  channel       String? @db.VarChar(64)
+  platform      String? @db.VarChar(32)
+  shellVersion  String? @map("shell_version") @db.VarChar(32)
+  updateTime    BigInt? @map("update_time")
+
+  @@unique([userId, token])
+  @@map("mobile_push_device")
+}
+
+model MobilePushPref {
+  userId     BigInt  @id @map("user_id")
+  enable     Int?    @default(1) @db.TinyInt
+  categories String? @db.VarChar(512)
+  updateTime BigInt? @map("update_time")
+
+  @@map("mobile_push_pref")
+}
+
+model MobileFaq {
+  id         BigInt  @id @default(autoincrement())
+  question   String  @db.VarChar(255)
+  answer     String  @db.Text
+  sort       Int?    @default(0)
+  status     String? @default("published") @db.VarChar(32)
+
+  @@map("mobile_faq")
 }

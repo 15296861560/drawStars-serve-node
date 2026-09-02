@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -91,12 +92,13 @@ export class MenuController {
       cookies?: Record<string, string>;
       auth?: { uid?: string };
     },
+    @Query() query: Record<string, string>,
   ) {
     const userId = this.rbacService.resolveUserIdFromRequest(req);
     if (!userId) {
       return { status: false, msg: "缺少用户信息", data: [] };
     }
-    return this.rbacService.getUserMenus(userId);
+    return this.rbacService.getUserMenus(userId, query.client);
   }
 
   @Get("userPermissions")

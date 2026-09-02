@@ -21,7 +21,9 @@
     "prisma:task-tables": "prisma db execute --file sql/task_tables.sql --schema prisma/schema.prisma",
     "seed:points-menus": "node scripts/seed-points-menus-via-api.js",
     "seed:task-menus": "node scripts/seed-task-menus-via-api.js",
-    "db:sync": "prisma db push"
+    "db:sync": "prisma db push",
+    "migrate:mobile-modules": "node scripts/migrate-app-manage-to-mobile.cjs",
+    "prisma:mobile-tables": "prisma db execute --file sql/mobile_tables.sql --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",

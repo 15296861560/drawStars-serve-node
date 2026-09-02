@@ -14,8 +14,10 @@ import { AppManageController } from "./app-manage.controller";
 import { AppManageService } from "./app-manage.service";
 import { NoticeManageController } from "./notice-manage.controller";
 import { NoticeManageService } from "./notice-manage.service";
+import { MobileModule } from "../mobile/mobile.module";
 
 @Module({
+  imports: [MobileModule],
   controllers: [
     TestController,
     ResourceController,

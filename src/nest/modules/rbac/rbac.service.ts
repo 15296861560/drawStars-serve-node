@@ -643,6 +643,9 @@ export class RbacService {
     component?: string;
     permission?: string;
     icon?: string;
+    client?: string;
+    moduleCode?: string;
+    isTab?: number;
     sort?: number;
     visible?: number;
     status?: number;
@@ -660,12 +663,16 @@ export class RbacService {
         component: body.component || null,
         permission: body.permission || null,
         icon: body.icon || null,
+        client: body.client || "pc",
+        moduleCode: body.moduleCode || null,
+        // isTab requires prisma generate after schema sync
+        ...( { isTab: body.isTab ?? 0 } as Record<string, unknown>),
         sort: body.sort ?? 0,
         visible: body.visible ?? 1,
         status: body.status ?? 1,
         createTime: BigInt(now),
         updateTime: BigInt(now),
-      },
+      } as never,
     });
     // 新建菜单自动授予超级管理员
     await this.ensureSuperAdminOwnsAllMenus(row.id);
@@ -681,6 +688,9 @@ export class RbacService {
     component?: string;
     permission?: string;
     icon?: string;
+    client?: string;
+    moduleCode?: string;
+    isTab?: number;
     sort?: number;
     visible?: number;
     status?: number;
@@ -702,11 +712,18 @@ export class RbacService {
           ? { permission: body.permission || null }
           : {}),
         ...(body.icon !== undefined ? { icon: body.icon || null } : {}),
+        ...(body.client !== undefined ? { client: body.client || "pc" } : {}),
+        ...(body.moduleCode !== undefined
+          ? { moduleCode: body.moduleCode || null }
+          : {}),
+        ...(body.isTab !== undefined
+          ? ({ isTab: Number(body.isTab) } as Record<string, unknown>)
+          : {}),
         ...(body.sort !== undefined ? { sort: body.sort } : {}),
         ...(body.visible !== undefined ? { visible: body.visible } : {}),
         ...(body.status !== undefined ? { status: body.status } : {}),
         updateTime: BigInt(Date.now()),
-      },
+      } as never,
     });
     return { status: true, msg: "更新成功", data: serializeBigInt(row) };
   }
@@ -725,7 +742,7 @@ export class RbacService {
     return { status: true, msg: "删除成功", data: true };
   }
 
-  async getUserMenus(userId: number) {
+  async getUserMenus(userId: number, client?: string) {
     const menuIds = await this.getUserMenuIds(userId);
     if (!menuIds.length) {
       return { status: true, msg: "ok", data: [] };
@@ -739,10 +756,17 @@ export class RbacService {
       },
       orderBy: [{ sort: "asc" }, { id: "asc" }],
     });
+    const clientKey = (client || "").toLowerCase();
+    const filtered = clientKey
+      ? rows.filter((r) => {
+          const c = String((r as { client?: string | null }).client || "pc").toLowerCase();
+          return c === "all" || c === clientKey;
+        })
+      : rows;
     // Ensure parent directories exist in tree even if not explicitly bound
-    const idSet = new Set(rows.map((r) => r.id));
-    const extra: typeof rows = [];
-    for (const row of rows) {
+    const idSet = new Set(filtered.map((r) => r.id));
+    const extra: typeof filtered = [];
+    for (const row of filtered) {
       let pid = row.parentId;
       while (pid !== BigInt(0) && !idSet.has(pid)) {
         const parent = await this.prisma.client.sysMenu.findUnique({
@@ -754,7 +778,7 @@ export class RbacService {
         pid = parent.parentId;
       }
     }
-    const all = [...rows, ...extra];
+    const all = [...filtered, ...extra];
     const uniq = new Map(all.map((m) => [Number(m.id), m]));
     return {
       status: true,
