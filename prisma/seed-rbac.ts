@@ -534,6 +534,40 @@ const MENU_SEEDS: MenuSeed[] = [
     icon: "Wallet",
     sort: 1,
   },
+  // ===== IM 聊天体系 =====
+  // 注意：im 为顶级菜单（与 个人中心/管理中心 平级），不能挂在 home(首页) 下——
+  // 前端 AsideList 会把 path=/home/homepage 的 home 节点整体滤掉（首页单独硬编码渲染），
+  // 若 im 作为 home 子节点会一并被隐藏。
+  {
+    key: "im",
+    name: "IM 聊天",
+    type: 2,
+    path: "/home/im",
+    permission: "tool:chat:use",
+    icon: "ChatDotRound",
+    sort: 30,
+  },
+  { key: "im_hall", parentKey: "im", name: "社交大厅", type: 2, path: "/home/im/hall", sort: 1 },
+  { key: "im_contacts", parentKey: "im", name: "通讯录", type: 2, path: "/home/im/contacts", sort: 2 },
+  { key: "im_profile", parentKey: "im", name: "资料与隐私", type: 2, path: "/home/im/profile", sort: 3 },
+  { key: "im_room_create", parentKey: "im", name: "创建房间", type: 3, permission: "chat:room:create", sort: 4 },
+  // 管理端 IM
+  {
+    key: "manage_chat",
+    parentKey: "manage",
+    name: "聊天管理",
+    type: 2,
+    path: "/home/manageHomePage/chat",
+    permission: "system:chat:list",
+    icon: "ChatLineSquare",
+    sort: 8,
+  },
+  { key: "manage_chat_rooms", parentKey: "manage_chat", name: "房间管理", type: 3, permission: "system:chat:operate", sort: 1 },
+  { key: "manage_chat_groups", parentKey: "manage_chat", name: "群管理", type: 3, permission: "system:chat:list", sort: 2 },
+  { key: "manage_chat_messages", parentKey: "manage_chat", name: "消息记录", type: 3, permission: "system:chat:list", sort: 3 },
+  { key: "manage_chat_reports", parentKey: "manage_chat", name: "举报审核", type: 3, permission: "chat:moderation:operate", sort: 4 },
+  { key: "manage_chat_analytics", parentKey: "manage_chat", name: "数据分析", type: 3, permission: "system:chat:analytics", sort: 5 },
+  { key: "manage_chat_settings", parentKey: "manage_chat", name: "系统配置", type: 3, permission: "system:chat:operate", sort: 6 },
 ];
 
 const ROLE_SEEDS = [
@@ -546,6 +580,11 @@ const ROLE_SEEDS = [
       "home",
       "profile",
       "profile_points",
+      "im",
+      "im_hall",
+      "im_contacts",
+      "im_profile",
+      "im_room_create",
       "mobile_shell",
       "mobile_workbench",
       "mobile_store",
@@ -678,6 +717,18 @@ const ROLE_SEEDS = [
       "mobile_feedback",
       "mobile_help",
       "mobile_demo_module",
+      "im",
+      "im_hall",
+      "im_contacts",
+      "im_profile",
+      "im_room_create",
+      "manage_chat",
+      "manage_chat_rooms",
+      "manage_chat_groups",
+      "manage_chat_messages",
+      "manage_chat_reports",
+      "manage_chat_analytics",
+      "manage_chat_settings",
     ],
   },
   {

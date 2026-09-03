@@ -1046,3 +1046,289 @@ model MobileFaq {
 
   @@map("mobile_faq")
 }
+
+// ===================== IM 聊天体系 =====================
+
+/// IM 用户资料（与 User 1:1）
+model ImUserProfile {
+  userId           BigInt   @id @map("user_id") @db.UnsignedBigInt
+  nick             String   @default("") @db.VarChar(64)
+  avatar           String?  @db.VarChar(512)
+  signature        String?  @db.VarChar(256)
+  gender           String   @default("UNKNOWN") @db.VarChar(16)
+  tags             Json?
+  allowStrangerMsg Boolean  @default(false) @map("allow_stranger_msg")
+  showOnline       Boolean  @default(true) @map("show_online")
+  status           String   @default("OFFLINE") @db.VarChar(16)
+  extra            Json?
+  updatedAt        BigInt?  @map("updated_at")
+
+  @@map("im_user_profile")
+}
+
+/// 会话
+model ImConversation {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  convType    String   @map("conv_type") @db.VarChar(16)
+  bizId       String   @map("biz_id") @db.VarChar(64)
+  pairKey     String?  @map("pair_key") @db.VarChar(129)
+  lastMsgId   String?  @map("last_msg_id") @db.VarChar(64)
+  lastMsgTime BigInt?  @map("last_msg_time")
+  maxSeq      BigInt   @default(0) @map("max_seq")
+  status      String   @default("ACTIVE") @db.VarChar(16)
+  createdAt   BigInt?  @map("created_at")
+  updatedAt   BigInt?  @map("updated_at")
+
+  users ImConversationUser[]
+
+  @@unique([convType, bizId], map: "uk_im_conv_type_biz")
+  @@index([pairKey], map: "idx_im_conv_pair")
+  @@map("im_conversation")
+}
+
+/// 会话-用户（每用户每会话的未读/草稿等）
+model ImConversationUser {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  conversationId BigInt   @map("conversation_id") @db.UnsignedBigInt
+  userId         BigInt   @map("user_id") @db.UnsignedBigInt
+  unreadCount    Int      @default(0) @map("unread_count")
+  mentionUnread  Int      @default(0) @map("mention_unread")
+  isPinned        Boolean  @default(false) @map("is_pinned")
+  isMuted        Boolean  @default(false) @map("is_muted")
+  lastReadSeq    BigInt   @default(0) @map("last_read_seq")
+  draft          String?  @db.Text
+  deletedAt      BigInt?  @map("deleted_at")
+  updatedAt      BigInt?  @map("updated_at")
+
+  conversation ImConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId], map: "uk_im_conv_user")
+  @@index([userId], map: "idx_im_conv_user_user")
+  @@map("im_conversation_user")
+}
+
+/// 消息
+model ImMessage {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  msgId          String   @unique(map: "uk_im_msg_id") @map("msg_id") @db.VarChar(64)
+  clientMsgId    String   @map("client_msg_id") @db.VarChar(64)
+  conversationId BigInt   @map("conversation_id") @db.UnsignedBigInt
+  senderId       BigInt   @map("sender_id") @db.UnsignedBigInt
+  msgType        String   @map("msg_type") @db.VarChar(16)
+  content        Json?
+  seq            BigInt   @default(0)
+  status         String   @default("NORMAL") @db.VarChar(16)
+  serverTime     BigInt   @map("server_time")
+  atUserIds      Json?    @map("at_user_ids")
+  atAll          Boolean  @default(false) @map("at_all")
+
+  @@unique([senderId, clientMsgId], map: "uk_im_msg_sender_client")
+  @@index([conversationId, seq], map: "idx_im_msg_conv_seq")
+  @@index([conversationId, status], map: "idx_im_msg_conv_status")
+  @@index([senderId], map: "idx_im_msg_sender")
+  @@map("im_message")
+}
+
+/// 群
+model ImGroup {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  groupId    String   @unique(map: "uk_im_group_id") @map("group_id") @db.VarChar(32)
+  title      String   @db.VarChar(64)
+  notice     String?  @db.VarChar(500)
+  groupType  String   @default("PUBLIC") @map("group_type") @db.VarChar(16)
+  joinMode   String   @default("FREE") @map("join_mode") @db.VarChar(16)
+  maxMembers Int      @default(200) @map("max_members")
+  ownerId    BigInt   @map("owner_id") @db.UnsignedBigInt
+  status     String   @default("ACTIVE") @db.VarChar(16)
+  createdAt  BigInt?  @map("created_at")
+  updatedAt  BigInt?  @map("updated_at")
+
+  members ImGroupMember[]
+
+  @@index([ownerId], map: "idx_im_group_owner")
+  @@index([groupType], map: "idx_im_group_type")
+  @@map("im_group")
+}
+
+/// 群成员
+model ImGroupMember {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  groupId   BigInt   @map("group_id") @db.UnsignedBigInt
+  userId    BigInt   @map("user_id") @db.UnsignedBigInt
+  role      String   @default("MEMBER") @db.VarChar(16)
+  muteUntil BigInt?  @map("mute_until")
+  joinedAt  BigInt   @map("joined_at")
+
+  group ImGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId], map: "uk_im_group_member")
+  @@index([userId], map: "idx_im_group_member_user")
+  @@map("im_group_member")
+}
+
+/// 聊天室/房间
+model ImRoom {
+  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  roomId          String   @unique(map: "uk_im_room_id") @map("room_id") @db.VarChar(32)
+  title           String   @db.VarChar(64)
+  notice          String?  @db.VarChar(500)
+  categoryId      String   @map("category_id") @db.VarChar(32)
+  tags            Json?
+  coverUrl        String?  @map("cover_url") @db.VarChar(512)
+  joinMode        String   @default("FREE") @map("join_mode") @db.VarChar(16)
+  speakMode       String   @default("ALL") @map("speak_mode") @db.VarChar(16)
+  anonymousSpeak  Boolean  @default(false) @map("anonymous_speak")
+  maxMembers      Int      @default(500) @map("max_members")
+  status          String   @default("DRAFT") @db.VarChar(16)
+  ownerId         BigInt   @map("owner_id") @db.UnsignedBigInt
+  official        Boolean  @default(false)
+  manualWeight    Decimal  @default(1) @map("manual_weight") @db.Decimal(4, 2)
+  createdAt       BigInt?  @map("created_at")
+  updatedAt       BigInt?  @map("updated_at")
+
+  members ImRoomMember[]
+  events  ImRoomEvent[]
+
+  @@index([categoryId], map: "idx_im_room_category")
+  @@index([status], map: "idx_im_room_status")
+  @@index([ownerId], map: "idx_im_room_owner")
+  @@map("im_room")
+}
+
+/// 房间成员（弱持久化）
+model ImRoomMember {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  roomId       BigInt   @map("room_id") @db.UnsignedBigInt
+  userId       BigInt   @map("user_id") @db.UnsignedBigInt
+  role         String   @default("MEMBER") @db.VarChar(16)
+  muteUntil    BigInt?  @map("mute_until")
+  joinedAt     BigInt   @map("joined_at")
+  lastActiveAt BigInt?  @map("last_active_at")
+
+  room ImRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId], map: "uk_im_room_member")
+  @@index([userId], map: "idx_im_room_member_user")
+  @@map("im_room_member")
+}
+
+/// 房间事件（进出/踢/禁言）
+model ImRoomEvent {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  roomId    BigInt   @map("room_id") @db.UnsignedBigInt
+  userId    BigInt   @map("user_id") @db.UnsignedBigInt
+  eventType String   @map("event_type") @db.VarChar(32)
+  payload   Json?
+  createdAt BigInt   @map("created_at")
+
+  room ImRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt], map: "idx_im_room_event_time")
+  @@map("im_room_event")
+}
+
+/// 好友关系
+model ImFriendship {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId    BigInt   @map("user_id") @db.UnsignedBigInt
+  friendId  BigInt   @map("friend_id") @db.UnsignedBigInt
+  status    String   @default("PENDING") @db.VarChar(16)
+  remark    String?  @db.VarChar(64)
+  createdAt BigInt   @map("created_at")
+  updatedAt BigInt?  @map("updated_at")
+
+  @@unique([userId, friendId], map: "uk_im_friend")
+  @@index([friendId, status], map: "idx_im_friend_target")
+  @@map("im_friendship")
+}
+
+/// 黑名单
+model ImBlacklist {
+  id        BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  userId    BigInt  @map("user_id") @db.UnsignedBigInt
+  targetId  BigInt  @map("target_id") @db.UnsignedBigInt
+  createdAt BigInt  @map("created_at")
+
+  @@unique([userId, targetId], map: "uk_im_blacklist")
+  @@index([userId], map: "idx_im_blacklist_user")
+  @@map("im_blacklist")
+}
+
+/// 举报单
+model ImReport {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  reporterId BigInt   @map("reporter_id") @db.UnsignedBigInt
+  targetType String   @map("target_type") @db.VarChar(16)
+  targetId   String   @map("target_id") @db.VarChar(64)
+  reason     String   @db.VarChar(500)
+  status     String   @default("PENDING") @db.VarChar(16)
+  handledBy  BigInt?  @map("handled_by") @db.UnsignedBigInt
+  remark     String?  @db.VarChar(500)
+  createdAt  BigInt   @map("created_at")
+  updatedAt  BigInt?  @map("updated_at")
+
+  @@index([status], map: "idx_im_report_status")
+  @@index([reporterId], map: "idx_im_report_reporter")
+  @@map("im_report")
+}
+
+/// 入群/进房申请
+model ImJoinRequest {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  targetType  String   @map("target_type") @db.VarChar(16)
+  targetId    String   @map("target_id") @db.VarChar(64)
+  applicantId BigInt   @map("applicant_id") @db.UnsignedBigInt
+  status      String   @default("PENDING") @db.VarChar(16)
+  handledBy   BigInt?  @map("handled_by") @db.UnsignedBigInt
+  remark      String?  @db.VarChar(500)
+  createdAt   BigInt   @map("created_at")
+  updatedAt   BigInt?  @map("updated_at")
+
+  @@unique([targetType, targetId, applicantId], map: "uk_im_join_req")
+  @@index([targetType, targetId, status], map: "idx_im_join_target")
+  @@index([applicantId, status], map: "idx_im_join_applicant")
+  @@map("im_join_request")
+}
+
+/// 房间分类
+model ImCategory {
+  id     BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  code   String  @unique(map: "uk_im_category_code") @db.VarChar(32)
+  name   String  @db.VarChar(64)
+  sort   Int     @default(0)
+  status String  @default("ACTIVE") @db.VarChar(16)
+
+  @@map("im_category")
+}
+
+/// 敏感词
+model ImSensitiveWord {
+  id        BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  word      String  @db.VarChar(64)
+  action    String  @default("BLOCK") @db.VarChar(16)
+  createdAt BigInt  @map("created_at")
+
+  @@unique([word], map: "uk_im_sensitive_word")
+  @@map("im_sensitive_word")
+}
+
+/// IM 每日统计
+model ImStatsDaily {
+  statDate         DateTime @id @map("stat_date") @db.Date
+  dau              Int      @default(0)
+  msgCount         Int      @default(0) @map("msg_count")
+  roomCreateCount  Int      @default(0) @map("room_create_count")
+  peakOnline       Int      @default(0) @map("peak_online")
+  avgStaySec       Int      @default(0) @map("avg_stay_sec")
+
+  @@map("im_stats_daily")
+}
+
+/// IM 系统配置（KV）
+model ImSetting {
+  key       String  @id @db.VarChar(64)
+  value     String? @db.Text
+  updatedAt BigInt? @map("updated_at")
+
+  @@map("im_setting")
+}

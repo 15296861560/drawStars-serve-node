@@ -15,6 +15,7 @@ export interface AppConfig {
   serve_port: number;
   ws_port: number;
   notify_port: number;
+  im_ws_port: number;
   uploadDir?: string;
 }
 
@@ -43,6 +44,7 @@ const dev_config: AppConfig = {
   serve_port: 8011,
   ws_port: 8021,
   notify_port: 8031,
+  im_ws_port: 8041,
   uploadDir: path.join(__dirname, "../../uploadDir"),
 };
 
@@ -60,6 +62,7 @@ const release_config: AppConfig = {
   serve_port: 8010,
   ws_port: 8020,
   notify_port: 8030,
+  im_ws_port: 8040,
   uploadDir: path.join(__dirname, "../../uploadDir"),
 };
 
@@ -79,6 +82,7 @@ const config: AppConfig = {
   serve_port: envInt("SERVE_PORT", base.serve_port),
   ws_port: envInt("WS_PORT", base.ws_port),
   notify_port: envInt("NOTIFY_PORT", base.notify_port),
+  im_ws_port: envInt("IM_WS_PORT", base.im_ws_port),
   uploadDir: envStr(
     "UPLOAD_DIR",
     base.uploadDir || path.join(__dirname, "../../uploadDir"),
