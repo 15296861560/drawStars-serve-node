@@ -1,8 +1,8 @@
-import type { RedisClientType } from "redis";
+import type { RedisClientType } from 'redis'
 
 declare global {
   // eslint-disable-next-line no-var
-  var redisClient: RedisClientType;
+  var redisClient: RedisClientType
 }
 
-export {};
+export {}

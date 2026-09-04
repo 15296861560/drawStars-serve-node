@@ -1,9 +1,9 @@
-import { Module } from "@nestjs/common";
-import { MysqlController } from "./mysql.controller";
-import { MysqlService } from "./mysql.service";
+import { Module } from '@nestjs/common'
+import { MysqlController } from './mysql.controller'
+import { MysqlService } from './mysql.service'
 
 @Module({
   controllers: [MysqlController],
-  providers: [MysqlService],
+  providers: [MysqlService]
 })
 export class MysqlModule {}

@@ -1,11 +1,11 @@
-import { Module } from "@nestjs/common";
-import { ProfileController } from "./profile.controller";
-import { UsersService } from "./users.service";
-import { UsersResolver } from "./graphql/users.resolver";
+import { Module } from '@nestjs/common'
+import { ProfileController } from './profile.controller'
+import { UsersService } from './users.service'
+import { UsersResolver } from './graphql/users.resolver'
 
 @Module({
   controllers: [ProfileController],
   providers: [UsersService, UsersResolver],
-  exports: [UsersService],
+  exports: [UsersService]
 })
 export class UsersModule {}

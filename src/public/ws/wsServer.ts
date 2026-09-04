@@ -1,30 +1,30 @@
-import WebSocket from "ws";
-import config from "../../config/publish-config";
+import WebSocket from 'ws'
+import config from '../../config/publish-config'
 
-const port = config.ws_port;
+const port = config.ws_port
 
 const ws = new WebSocket.Server({ port }, () => {
-  console.log(`websocket run port ${port}`);
-});
+  console.log(`websocket run port ${port}`)
+})
 
-ws.on("error", (err: NodeJS.ErrnoException) => {
-  if (err.code === "EADDRINUSE") {
+ws.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
     console.warn(
-      `[ws] port ${port} already in use — stop the previous node process or use: netstat -ano | findstr :${port}`,
-    );
-    return;
+      `[ws] port ${port} already in use — stop the previous node process or use: netstat -ano | findstr :${port}`
+    )
+    return
   }
-  console.error("[ws] server error:", err);
-});
+  console.error('[ws] server error:', err)
+})
 
-ws.on("connection", (client) => {
-  client.send("连接WebSocket成功");
-  client.on("message", (msg) => {
-    console.log("来自前端的数据：" + msg);
-    client.send("服务端发送的信息：" + new Date().toLocaleString());
-  });
+ws.on('connection', client => {
+  client.send('连接WebSocket成功')
+  client.on('message', msg => {
+    console.log('来自前端的数据：' + msg)
+    client.send('服务端发送的信息：' + new Date().toLocaleString())
+  })
 
-  client.on("close", () => {
-    console.log("前端主动断开了链接：");
-  });
-});
+  client.on('close', () => {
+    console.log('前端主动断开了链接：')
+  })
+})

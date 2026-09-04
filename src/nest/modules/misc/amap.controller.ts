@@ -1,6 +1,6 @@
-import { Controller, Get } from "@nestjs/common";
-import { getAppInfo } from "../../../db/app-info";
-import { Public } from "../../common/decorators/public.decorator";
+import { Controller, Get } from '@nestjs/common'
+import { getAppInfo } from '../../../db/app-info'
+import { Public } from '../../common/decorators/public.decorator'
 
 /**
  * 高德地图凭证：
@@ -9,27 +9,27 @@ import { Public } from "../../common/decorators/public.decorator";
  * app_certificate = 安全密钥 securityJsCode
  * app_version = Web服务 Key（REST，可选）
  */
-@Controller("amapApi")
+@Controller('amapApi')
 export class AmapController {
   @Public()
-  @Get("getMapApiKey")
+  @Get('getMapApiKey')
   async getMapApiKey() {
-    const appInfo = await getAppInfo("amap");
+    const appInfo = await getAppInfo('amap')
     if (!appInfo?.app_id) {
       return {
         status: false,
-        msg: "未配置高德地图（app_info.amap）",
-        data: null,
-      };
+        msg: '未配置高德地图（app_info.amap）',
+        data: null
+      }
     }
     return {
       status: true,
-      msg: "success",
+      msg: 'success',
       data: {
         key: appInfo.app_id,
-        securityJsCode: appInfo.app_certificate || "",
-        webServiceKey: appInfo.app_version || "",
-      },
-    };
+        securityJsCode: appInfo.app_certificate || '',
+        webServiceKey: appInfo.app_version || ''
+      }
+    }
   }
 }

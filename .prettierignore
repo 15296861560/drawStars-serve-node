@@ -1,0 +1,9 @@
+/dist
+/node_modules
+/public
+/sql
+/README.md
+/schema.gql
+/pnpm-lock.yaml
+/prisma/schema.prisma
+*.cjs

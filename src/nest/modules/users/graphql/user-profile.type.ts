@@ -1,34 +1,34 @@
-import { Field, Int, ObjectType } from "@nestjs/graphql";
+import { Field, Int, ObjectType } from '@nestjs/graphql'
 
 @ObjectType()
 export class UserProfileType {
   @Field(() => Int)
-  id!: number;
+  id!: number
 
   @Field({ nullable: true })
-  name?: string;
+  name?: string
 
   @Field({ nullable: true })
-  introduction?: string;
+  introduction?: string
 
   @Field({ nullable: true })
-  birthday?: string;
+  birthday?: string
 
   @Field({ nullable: true })
-  region?: string;
+  region?: string
 
   @Field({ nullable: true })
-  gender?: string;
+  gender?: string
 
   @Field({ nullable: true })
-  phone?: string;
+  phone?: string
 }
 
 @ObjectType()
 export class GenericMutationResult {
   @Field()
-  status!: boolean;
+  status!: boolean
 
   @Field()
-  msg!: string;
+  msg!: string
 }

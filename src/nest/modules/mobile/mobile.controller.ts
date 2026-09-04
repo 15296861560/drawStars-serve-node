@@ -6,295 +6,298 @@ import {
   Post,
   Query,
   Req,
-  UseGuards,
-} from "@nestjs/common";
-import { Public } from "../../common/decorators/public.decorator";
-import { RequirePermissions } from "../../common/decorators/permissions.decorator";
-import { PermissionsGuard } from "../../common/guards/permissions.guard";
-import { MobileService } from "./mobile.service";
-import { MobileP1Service } from "./mobile-p1.service";
+  UseGuards
+} from '@nestjs/common'
+import { Public } from '../../common/decorators/public.decorator'
+import { RequirePermissions } from '../../common/decorators/permissions.decorator'
+import { PermissionsGuard } from '../../common/guards/permissions.guard'
+import { MobileService } from './mobile.service'
+import { MobileP1Service } from './mobile-p1.service'
 
 type AuthedReq = {
-  auth?: { uid?: string };
-  query?: Record<string, unknown>;
-};
-
-function uidOf(req: AuthedReq): number | undefined {
-  const uid = req?.auth?.uid;
-  if (!uid) return undefined;
-  const n = Number(uid);
-  return Number.isFinite(n) ? n : undefined;
+  auth?: { uid?: string }
+  query?: Record<string, unknown>
 }
 
-@Controller("mobile")
+function uidOf(req: AuthedReq): number | undefined {
+  const uid = req?.auth?.uid
+  if (!uid) return undefined
+  const n = Number(uid)
+  return Number.isFinite(n) ? n : undefined
+}
+
+@Controller('mobile')
 export class MobileController {
   constructor(
     private readonly mobileService: MobileService,
-    private readonly mobileP1: MobileP1Service,
+    private readonly mobileP1: MobileP1Service
   ) {}
 
-  @Get("modules")
+  @Get('modules')
   list(@Query() query: Record<string, string>) {
     return this.mobileService.listModules({
       platform: query.platform,
       category: query.category,
-      keyword: query.keyword,
-    });
+      keyword: query.keyword
+    })
   }
 
-  @Get("modules/:code")
-  detail(@Param("code") code: string) {
-    return this.mobileService.moduleDetail(decodeURIComponent(code));
+  @Get('modules/:code')
+  detail(@Param('code') code: string) {
+    return this.mobileService.moduleDetail(decodeURIComponent(code))
   }
 
-  @Post("modules/:code/download")
+  @Post('modules/:code/download')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("mobile:module:install")
+  @RequirePermissions('mobile:module:install')
   download(
-    @Param("code") code: string,
+    @Param('code') code: string,
     @Body() body: { platform?: string },
     @Query() query: Record<string, string>,
-    @Req() req: AuthedReq,
+    @Req() req: AuthedReq
   ) {
     return this.mobileService.download(
       decodeURIComponent(code),
       body?.platform || query.platform,
-      uidOf(req),
-    );
+      uidOf(req)
+    )
   }
 
-  @Get("modules/:code/checkUpdate")
+  @Get('modules/:code/checkUpdate')
   checkUpdate(
-    @Param("code") code: string,
-    @Query() query: Record<string, string>,
+    @Param('code') code: string,
+    @Query() query: Record<string, string>
   ) {
     return this.mobileService.checkModuleUpdate(
       decodeURIComponent(code),
-      query.version,
-    );
+      query.version
+    )
   }
 
-  @Get("modules/:code/openCheck")
+  @Get('modules/:code/openCheck')
   openCheck(
-    @Param("code") code: string,
-    @Query() query: Record<string, string>,
+    @Param('code') code: string,
+    @Query() query: Record<string, string>
   ) {
     return this.mobileService.openCheck(
       decodeURIComponent(code),
       query.version,
-      query.shellVersion,
-    );
+      query.shellVersion
+    )
   }
 
   @Public()
-  @Get("modules/:code/package")
+  @Get('modules/:code/package')
   redeemPackage(
-    @Param("code") code: string,
-    @Query() query: Record<string, string>,
+    @Param('code') code: string,
+    @Query() query: Record<string, string>
   ) {
     return this.mobileService.redeemPackage(
       decodeURIComponent(code),
-      query.token,
-    );
+      query.token
+    )
   }
 
-  @Post("module/ticket")
-  ticket(@Body() body: { moduleCode?: string; platform?: string }, @Req() req: AuthedReq) {
+  @Post('module/ticket')
+  ticket(
+    @Body() body: { moduleCode?: string; platform?: string },
+    @Req() req: AuthedReq
+  ) {
     return this.mobileService.requestTicket({
       userId: uidOf(req),
-      moduleCode: String(body?.moduleCode || ""),
-      platform: body?.platform,
-    });
+      moduleCode: String(body?.moduleCode || ''),
+      platform: body?.platform
+    })
   }
 
   @Public()
-  @Post("module/exchangeTicket")
+  @Post('module/exchangeTicket')
   exchange(@Body() body: { ticket?: string }) {
-    return this.mobileService.exchangeTicket(String(body?.ticket || ""));
+    return this.mobileService.exchangeTicket(String(body?.ticket || ''))
   }
 
   @Public()
-  @Get("shell/checkUpdate")
+  @Get('shell/checkUpdate')
   shellCheck(@Query() query: Record<string, string>) {
-    return this.mobileService.checkShellUpdate(query);
+    return this.mobileService.checkShellUpdate(query)
   }
 
-  @Post("telemetry/report")
+  @Post('telemetry/report')
   telemetry(@Body() body: { events?: unknown[] }) {
-    return this.mobileService.reportTelemetry(body?.events || []);
+    return this.mobileService.reportTelemetry(body?.events || [])
   }
 
-  @Post("modules/installed/sync")
+  @Post('modules/installed/sync')
   syncInstalled(
     @Body()
     body: {
       list?: Array<{
-        moduleCode: string;
-        version?: string;
-        platform?: string;
-        mode?: string;
-      }>;
+        moduleCode: string
+        version?: string
+        platform?: string
+        mode?: string
+      }>
     },
-    @Req() req: AuthedReq,
+    @Req() req: AuthedReq
   ) {
-    return this.mobileService.syncInstalled(uidOf(req), body?.list || []);
+    return this.mobileService.syncInstalled(uidOf(req), body?.list || [])
   }
 
-  @Get("modules/:code/versions")
-  versions(@Param("code") code: string) {
-    return this.mobileService.listVersions(decodeURIComponent(code));
+  @Get('modules/:code/versions')
+  versions(@Param('code') code: string) {
+    return this.mobileService.listVersions(decodeURIComponent(code))
   }
 
-  @Post("modules/:code/permissions")
+  @Post('modules/:code/permissions')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("system:app:publish")
+  @RequirePermissions('system:app:publish')
   setPerms(
-    @Param("code") code: string,
-    @Body() body: { permissionCodes?: string[] },
+    @Param('code') code: string,
+    @Body() body: { permissionCodes?: string[] }
   ) {
     return this.mobileService.setModulePermissions(
       decodeURIComponent(code),
-      body?.permissionCodes || [],
-    );
+      body?.permissionCodes || []
+    )
   }
 
-  @Get("shell/releases")
+  @Get('shell/releases')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("system:shell:release")
+  @RequirePermissions('system:shell:release')
   shellList() {
-    return this.mobileService.listShellReleases();
+    return this.mobileService.listShellReleases()
   }
 
-  @Post("shell/releases")
+  @Post('shell/releases')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("system:shell:release")
+  @RequirePermissions('system:shell:release')
   shellCreate(@Body() body: Record<string, unknown>) {
-    return this.mobileService.createShellRelease(body as never);
+    return this.mobileService.createShellRelease(body as never)
   }
 
   // ---- P1: search / feedback / faq / banners / preview / debug / push / sign ----
 
-  @Get("search")
+  @Get('search')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("mobile:search:use")
+  @RequirePermissions('mobile:search:use')
   search(@Query() query: Record<string, string>, @Req() req: AuthedReq) {
-    return this.mobileP1.search(uidOf(req), query.q || "");
+    return this.mobileP1.search(uidOf(req), query.q || '')
   }
 
-  @Post("feedback")
+  @Post('feedback')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("mobile:feedback:submit")
+  @RequirePermissions('mobile:feedback:submit')
   feedback(
     @Body()
     body: { content?: string; contact?: string; diagnostics?: unknown },
-    @Req() req: AuthedReq,
+    @Req() req: AuthedReq
   ) {
-    return this.mobileP1.submitFeedback(uidOf(req), body || {});
+    return this.mobileP1.submitFeedback(uidOf(req), body || {})
   }
 
   @Public()
-  @Get("faq")
+  @Get('faq')
   faq() {
-    return this.mobileP1.listFaq();
+    return this.mobileP1.listFaq()
   }
 
-  @Get("ops/banners")
+  @Get('ops/banners')
   banners(@Query() query: Record<string, string>, @Req() req: AuthedReq) {
-    return this.mobileP1.listBanners(query.platform, uidOf(req));
+    return this.mobileP1.listBanners(query.platform, uidOf(req))
   }
 
-  @Get("ops/banners/admin")
+  @Get('ops/banners/admin')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("system:app:ops")
+  @RequirePermissions('system:app:ops')
   bannersAdmin() {
-    return this.mobileP1.listBannersAdmin();
+    return this.mobileP1.listBannersAdmin()
   }
 
-  @Post("ops/banners")
+  @Post('ops/banners')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("system:app:ops")
+  @RequirePermissions('system:app:ops')
   bannerUpsert(@Body() body: Record<string, unknown>) {
-    return this.mobileP1.upsertBanner(body || {});
+    return this.mobileP1.upsertBanner(body || {})
   }
 
-  @Post("preview/create")
+  @Post('preview/create')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("system:app:publish")
+  @RequirePermissions('system:app:publish')
   previewCreate(
     @Body()
     body: {
-      moduleCode?: string;
-      moduleUrl?: string;
-      name?: string;
-      ttlSec?: number;
+      moduleCode?: string
+      moduleUrl?: string
+      name?: string
+      ttlSec?: number
     },
-    @Req() req: AuthedReq,
+    @Req() req: AuthedReq
   ) {
-    return this.mobileP1.createPreview(body || {}, uidOf(req));
+    return this.mobileP1.createPreview(body || {}, uidOf(req))
   }
 
   @Public()
-  @Get("preview/resolve")
+  @Get('preview/resolve')
   previewResolve(@Query() query: Record<string, string>) {
-    return this.mobileP1.resolvePreview(query.token);
+    return this.mobileP1.resolvePreview(query.token)
   }
 
-  @Get("debug/whitelist")
+  @Get('debug/whitelist')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("system:app:publish")
+  @RequirePermissions('system:app:publish')
   debugList() {
-    return this.mobileP1.listDebugWhitelist();
+    return this.mobileP1.listDebugWhitelist()
   }
 
-  @Post("debug/whitelist")
+  @Post('debug/whitelist')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("system:app:publish")
+  @RequirePermissions('system:app:publish')
   debugAdd(@Body() body: { pattern?: string; remark?: string }) {
-    return this.mobileP1.addDebugWhitelist(body || {});
+    return this.mobileP1.addDebugWhitelist(body || {})
   }
 
-  @Post("debug/checkUrl")
+  @Post('debug/checkUrl')
   checkDebug(@Body() body: { url?: string }) {
-    return this.mobileP1.checkDebugUrl(body?.url);
+    return this.mobileP1.checkDebugUrl(body?.url)
   }
 
   @Public()
-  @Get("package/publicKey")
+  @Get('package/publicKey')
   publicKey() {
-    return this.mobileP1.getPackagePublicKey();
+    return this.mobileP1.getPackagePublicKey()
   }
 
-  @Post("package/sign")
+  @Post('package/sign')
   @UseGuards(PermissionsGuard)
-  @RequirePermissions("system:app:publish")
+  @RequirePermissions('system:app:publish')
   signPackage(@Body() body: { checksum?: string }) {
-    return this.mobileP1.signChecksum(body?.checksum);
+    return this.mobileP1.signChecksum(body?.checksum)
   }
 
-  @Post("push/register")
+  @Post('push/register')
   pushRegister(
     @Body()
     body: {
-      token?: string;
-      channel?: string;
-      platform?: string;
-      shellVersion?: string;
+      token?: string
+      channel?: string
+      platform?: string
+      shellVersion?: string
     },
-    @Req() req: AuthedReq,
+    @Req() req: AuthedReq
   ) {
-    return this.mobileP1.registerPush(uidOf(req), body || {});
+    return this.mobileP1.registerPush(uidOf(req), body || {})
   }
 
-  @Get("push/prefs")
+  @Get('push/prefs')
   pushPrefsGet(@Req() req: AuthedReq) {
-    return this.mobileP1.getPushPrefs(uidOf(req));
+    return this.mobileP1.getPushPrefs(uidOf(req))
   }
 
-  @Post("push/prefs")
+  @Post('push/prefs')
   pushPrefsSet(
     @Body() body: { enable?: boolean; categories?: Record<string, boolean> },
-    @Req() req: AuthedReq,
+    @Req() req: AuthedReq
   ) {
-    return this.mobileP1.setPushPrefs(uidOf(req), body || {});
+    return this.mobileP1.setPushPrefs(uidOf(req), body || {})
   }
 }
