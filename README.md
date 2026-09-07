@@ -76,7 +76,7 @@ pnpm serve              # NODE_ENV=production node dist/main.js
 
 ## 目录结构
 
-```
+```text
 drawStars-serve-node/
 ├── src/
 │   ├── main.ts                    # NestJS 启动入口
@@ -139,7 +139,7 @@ pnpm prisma:studio
 2. **配置密钥**：在 `app_info` 表写入配置（勿写入 `.env`）
 
    | app_name | app_id | app_certificate | app_version |
-   |----------|--------|-----------------|-------------|
+   | ------ | ------ | ------ | ------ |
    | `openai` | 模型名（如 `gpt-4o-mini`） | API Key（`sk-...`） | OpenAI 兼容 Base URL（可选） |
    | `ai_assistant` | 上传大小上限 MB（默认 `10`） | 系统提示词（可选） | — |
 

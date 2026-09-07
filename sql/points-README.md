@@ -3,7 +3,7 @@
 ## 文件
 
 | 路径 | 说明 |
-|------|------|
+| ------ | ------ |
 | `sql/points_tables.sql` | 建表 + 初始等级/规则数据 |
 | `prisma/schema.prisma` | Points* Prisma models |
 | `src/nest/modules/points/` | Nest 控制器与业务服务 |
@@ -25,7 +25,7 @@ pnpm build
 ## API（前缀 `/api`）
 
 | 方法 | 路径 | 说明 |
-|------|------|------|
+| ------ | ------ | ------ |
 | GET | `/api/points/account` | 积分账户 |
 | GET | `/api/points/transactions` | 交易记录分页 |
 | GET | `/api/points/rules` | 规则列表 |
