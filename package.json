@@ -20,10 +20,12 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:seed-rbac": "tsx prisma/seed-rbac.ts",
+    "prisma:seed-workflow": "tsx prisma/seed-workflow.ts",
     "prisma:rbac-tables": "prisma db execute --file sql/rbac_tables.sql --schema prisma/schema.prisma",
     "prisma:app-manage-table": "prisma db execute --file sql/app_manage.sql --schema prisma/schema.prisma",
     "prisma:points-tables": "prisma db execute --file sql/points_tables.sql --schema prisma/schema.prisma",
     "prisma:task-tables": "prisma db execute --file sql/task_tables.sql --schema prisma/schema.prisma",
+    "prisma:workflow-tables": "prisma db execute --file sql/workflow_tables.sql --schema prisma/schema.prisma",
     "db:sync": "prisma db push",
     "migrate:mobile-modules": "node scripts/migrate-app-manage-to-mobile.cjs",
     "prisma:mobile-tables": "prisma db execute --file sql/mobile_tables.sql --schema prisma/schema.prisma"

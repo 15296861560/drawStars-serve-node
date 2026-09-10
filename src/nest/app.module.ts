@@ -18,6 +18,7 @@ import { TaskModule } from './modules/task/task.module'
 import { SurveyModule } from './modules/survey/survey.module'
 import { MobileModule } from './modules/mobile/mobile.module'
 import { ImModule } from './modules/im/im.module'
+import { WorkflowModule } from './modules/workflow/workflow.module'
 import { AuthGuard } from './common/guards/auth.guard'
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor'
 import { ResponseInterceptor } from './common/interceptors/response.interceptor'
@@ -44,7 +45,8 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
     TaskModule,
     SurveyModule,
     MobileModule,
-    ImModule
+    ImModule,
+    WorkflowModule
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

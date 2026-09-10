@@ -792,6 +792,151 @@ const MENU_SEEDS: MenuSeed[] = [
     type: 3,
     permission: 'system:chat:operate',
     sort: 6
+  },
+  // 管理端 流程编排
+  {
+    key: 'manage_workflow',
+    parentKey: 'manage',
+    name: '流程编排',
+    type: 2,
+    path: '/home/manageHomePage/workflow',
+    permission: 'system:workflow:list',
+    icon: 'Share',
+    sort: 10
+  },
+  {
+    key: 'workflow_overview',
+    parentKey: 'manage_workflow',
+    name: '流程概览',
+    type: 2,
+    path: '/home/manageHomePage/workflow/overview',
+    permission: 'system:workflow:list',
+    icon: 'DataAnalysis',
+    sort: 1
+  },
+  {
+    key: 'workflow_list',
+    parentKey: 'manage_workflow',
+    name: '流程列表',
+    type: 2,
+    path: '/home/manageHomePage/workflow/list',
+    permission: 'system:workflow:list',
+    icon: 'List',
+    sort: 2
+  },
+  {
+    key: 'workflow_history',
+    parentKey: 'manage_workflow',
+    name: '执行历史',
+    type: 2,
+    path: '/home/manageHomePage/workflow/history',
+    permission: 'system:workflow:list',
+    icon: 'VideoPlay',
+    sort: 3
+  },
+  {
+    key: 'workflow_templates',
+    parentKey: 'manage_workflow',
+    name: '模板市场',
+    type: 2,
+    path: '/home/manageHomePage/workflow/templates',
+    permission: 'system:workflow:list',
+    icon: 'Files',
+    sort: 4
+  },
+  {
+    key: 'workflow_tools',
+    parentKey: 'manage_workflow',
+    name: '工具管理',
+    type: 2,
+    path: '/home/manageHomePage/workflow/tools',
+    permission: 'system:workflow:list',
+    icon: 'SetUp',
+    sort: 5
+  },
+  {
+    key: 'workflow_categories',
+    parentKey: 'manage_workflow',
+    name: '流程分类',
+    type: 2,
+    path: '/home/manageHomePage/workflow/categories',
+    permission: 'system:workflow:operate',
+    icon: 'FolderOpened',
+    sort: 6
+  },
+  {
+    key: 'workflow_alerts',
+    parentKey: 'manage_workflow',
+    name: '告警规则',
+    type: 2,
+    path: '/home/manageHomePage/workflow/alerts',
+    permission: 'system:workflow:operate',
+    icon: 'Bell',
+    sort: 7
+  },
+  {
+    key: 'workflow_btn_list',
+    parentKey: 'manage_workflow',
+    name: '查看流程',
+    type: 3,
+    permission: 'system:workflow:list',
+    sort: 1
+  },
+  {
+    key: 'workflow_btn_create',
+    parentKey: 'manage_workflow',
+    name: '新建流程',
+    type: 3,
+    permission: 'system:workflow:create',
+    sort: 2
+  },
+  {
+    key: 'workflow_btn_design',
+    parentKey: 'manage_workflow',
+    name: '流程设计',
+    type: 3,
+    permission: 'system:workflow:design',
+    sort: 3
+  },
+  {
+    key: 'workflow_btn_delete',
+    parentKey: 'manage_workflow',
+    name: '删除流程',
+    type: 3,
+    permission: 'system:workflow:delete',
+    sort: 4
+  },
+  {
+    key: 'workflow_btn_publish',
+    parentKey: 'manage_workflow',
+    name: '发布流程',
+    type: 3,
+    permission: 'system:workflow:publish',
+    sort: 5
+  },
+  {
+    key: 'workflow_btn_audit',
+    parentKey: 'manage_workflow',
+    name: '流程审核',
+    type: 3,
+    permission: 'system:workflow:audit',
+    sort: 6
+  },
+  {
+    key: 'workflow_btn_execute',
+    parentKey: 'manage_workflow',
+    name: '执行流程',
+    type: 3,
+    permission: 'system:workflow:execute',
+    sort: 7
+  },
+  {
+    key: 'workflow_btn_operate',
+    parentKey: 'manage_workflow',
+    name: '组件与配置',
+    type: 3,
+    permission: 'system:workflow:operate',
+    sort: 8
   }
 ]
 
@@ -953,7 +1098,23 @@ const ROLE_SEEDS = [
       'manage_chat_messages',
       'manage_chat_reports',
       'manage_chat_analytics',
-      'manage_chat_settings'
+      'manage_chat_settings',
+      'manage_workflow',
+      'workflow_overview',
+      'workflow_list',
+      'workflow_history',
+      'workflow_templates',
+      'workflow_tools',
+      'workflow_categories',
+      'workflow_alerts',
+      'workflow_btn_list',
+      'workflow_btn_create',
+      'workflow_btn_design',
+      'workflow_btn_delete',
+      'workflow_btn_publish',
+      'workflow_btn_audit',
+      'workflow_btn_execute',
+      'workflow_btn_operate'
     ]
   },
   {

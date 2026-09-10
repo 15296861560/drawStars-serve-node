@@ -1332,3 +1332,217 @@ model ImSetting {
 
   @@map("im_setting")
 }
+
+// ============================================
+// 流程编排系统 - Prisma Model 定义
+// 追加至 prisma/schema.prisma
+// ============================================
+
+/// 流程分类表
+model WorkflowCategory {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String   @map("name") @db.VarChar(64)
+  code        String   @map("code") @db.VarChar(32)
+  icon        String?  @map("icon") @db.VarChar(128)
+  description String?  @map("description") @db.VarChar(255)
+  sortOrder   Int      @default(0) @map("sort_order")
+  enabled     Boolean  @default(true) @map("enabled") @db.TinyInt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  workflows   Workflow[]
+
+  @@unique([code], map: "uk_code")
+  @@map("workflow_category")
+}
+
+/// 流程定义表
+model Workflow {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  workflowNo     String   @map("workflow_no") @db.VarChar(32)
+  name           String   @map("name") @db.VarChar(128)
+  description    String?  @map("description") @db.Text
+  icon           String?  @map("icon") @db.VarChar(128)
+  categoryId     BigInt   @map("category_id") @db.UnsignedBigInt
+  tags           Json?    @map("tags")
+  status         String   @default("DRAFT") @map("status") @db.VarChar(16) // DRAFT/PENDING/PUBLISHED/REJECTED/PAUSED/OFFLINE
+  currentVersion Int      @default(0) @map("current_version")
+  graphData      Json     @map("graph_data") // 画布图数据（节点+连线拓扑，含触发器配置）
+  globalConfig   Json?    @map("global_config") // 全局配置（超时/并发等）
+  creatorId      BigInt   @map("creator_id") @db.UnsignedBigInt
+  auditorId      BigInt?  @map("auditor_id") @db.UnsignedBigInt
+  auditedAt      DateTime? @map("audited_at")
+  auditRemark    String?  @map("audit_remark") @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at") // 软删除
+
+  category       WorkflowCategory @relation(fields: [categoryId], references: [id])
+  versions       WorkflowVersion[]
+  executions     WorkflowExecution[]
+  alertRules     WorkflowAlertRule[]
+
+  @@unique([workflowNo], map: "uk_workflow_no")
+  @@index([categoryId], map: "idx_category")
+  @@index([status], map: "idx_status")
+  @@index([creatorId], map: "idx_creator")
+  @@index([deletedAt], map: "idx_deleted")
+  @@map("workflow")
+}
+
+/// 流程版本表
+model WorkflowVersion {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  workflowId   BigInt   @map("workflow_id") @db.UnsignedBigInt
+  version      Int      @map("version")
+  graphData    Json     @map("graph_data")
+  globalConfig Json?    @map("global_config")
+  changeNote   String?  @map("change_note") @db.VarChar(255)
+  createdBy    BigInt   @map("created_by") @db.UnsignedBigInt
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  workflow     Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, version], map: "uk_workflow_version")
+  @@index([workflowId], map: "idx_workflow")
+  @@map("workflow_version")
+}
+
+/// 流程执行实例表
+model WorkflowExecution {
+  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  executionNo     String   @map("execution_no") @db.VarChar(32)
+  workflowId      BigInt   @map("workflow_id") @db.UnsignedBigInt
+  workflowVersion Int      @map("workflow_version")
+  status          String   @default("PENDING") @map("status") @db.VarChar(16) // PENDING/RUNNING/SUCCEEDED/FAILED/TIMEOUT/CANCELLED/PAUSED
+  triggerType     String   @map("trigger_type") @db.VarChar(16) // CRON/WEBHOOK/MANUAL/EVENT
+  triggerData     Json?    @map("trigger_data")
+  context         Json?    @map("context") // 执行上下文（所有变量快照）
+  result          Json?    @map("result")
+  errorMessage    String?  @map("error_message") @db.Text
+  errorNodeId     String?  @map("error_node_id") @db.VarChar(64)
+  durationMs      Int?     @map("duration_ms")
+  startedAt       DateTime? @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  workflow        Workflow @relation(fields: [workflowId], references: [id])
+  stepLogs        ExecutionStepLog[]
+
+  @@unique([executionNo], map: "uk_execution_no")
+  @@index([workflowId], map: "idx_workflow")
+  @@index([status], map: "idx_status")
+  @@index([triggerType], map: "idx_trigger")
+  @@index([createdAt], map: "idx_created")
+  @@map("workflow_execution")
+}
+
+/// 节点执行日志表
+model ExecutionStepLog {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  executionId  BigInt   @map("execution_id") @db.UnsignedBigInt
+  nodeId       String   @map("node_id") @db.VarChar(64)
+  nodeType     String   @map("node_type") @db.VarChar(32) // AGENT/TOOL/CONDITION/TRANSFORM/OUTPUT
+  nodeName     String?  @map("node_name") @db.VarChar(128)
+  status       String   @map("status") @db.VarChar(16) // PENDING/RUNNING/SUCCEEDED/FAILED/SKIPPED
+  inputData    Json?    @map("input_data")
+  outputData   Json?    @map("output_data")
+  errorMessage String?  @map("error_message") @db.Text
+  retryCount   Int      @default(0) @map("retry_count")
+  durationMs   Int?     @map("duration_ms")
+  startedAt    DateTime? @map("started_at")
+  finishedAt   DateTime? @map("finished_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  execution    WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId], map: "idx_execution")
+  @@index([nodeId], map: "idx_node")
+  @@index([status], map: "idx_status")
+  @@map("execution_step_log")
+}
+
+/// 工具定义表
+model WorkflowTool {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name         String   @map("name") @db.VarChar(64)
+  code         String   @map("code") @db.VarChar(64)
+  category     String   @map("category") @db.VarChar(32)
+  description  String?  @map("description") @db.VarChar(255)
+  icon         String?  @map("icon") @db.VarChar(128)
+  endpoint     String?  @map("endpoint") @db.VarChar(255)
+  method       String   @default("GET") @map("method") @db.VarChar(16)
+  authConfig   Json?    @map("auth_config")
+  paramSchema  Json     @map("param_schema")
+  outputSchema Json?    @map("output_schema")
+  isBuiltin    Boolean  @default(false) @map("is_builtin") @db.TinyInt
+  enabled      Boolean  @default(true) @map("enabled") @db.TinyInt
+  creatorId    BigInt?  @map("creator_id") @db.UnsignedBigInt
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([code], map: "uk_code")
+  @@index([category], map: "idx_category")
+  @@index([isBuiltin], map: "idx_builtin")
+  @@map("workflow_tool")
+}
+
+/// 流程模板表
+model WorkflowTemplate {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name         String   @map("name") @db.VarChar(128)
+  description  String?  @map("description") @db.Text
+  icon         String?  @map("icon") @db.VarChar(128)
+  category     String   @map("category") @db.VarChar(32)
+  graphData    Json     @map("graph_data")
+  globalConfig Json?    @map("global_config")
+  previewImage String?  @map("preview_image") @db.VarChar(255)
+  authorId     BigInt?  @map("author_id") @db.UnsignedBigInt
+  isOfficial   Boolean  @default(false) @map("is_official") @db.TinyInt
+  installCount Int      @default(0) @map("install_count")
+  rating       Decimal  @default(0.0) @map("rating") @db.Decimal(3, 1)
+  enabled      Boolean  @default(true) @map("enabled") @db.TinyInt
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([category], map: "idx_category")
+  @@index([isOfficial], map: "idx_official")
+  @@map("workflow_template")
+}
+
+/// 告警规则表
+model WorkflowAlertRule {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  workflowId     BigInt?  @map("workflow_id") @db.UnsignedBigInt // NULL=全局规则
+  ruleType       String   @map("rule_type") @db.VarChar(32) // ERROR_COUNT/TIMEOUT_COUNT/ERROR_RATE/QUEUE_BACKLOG
+  threshold      Int      @map("threshold")
+  windowMinutes  Int      @default(5) @map("window_minutes")
+  notifyChannels Json     @map("notify_channels") // ["FEISHU","NOTIFY"]
+  notifyUsers    Json?    @map("notify_users")
+  enabled        Boolean  @default(true) @map("enabled") @db.TinyInt
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  workflow       Workflow? @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId], map: "idx_workflow")
+  @@index([enabled], map: "idx_enabled")
+  @@map("workflow_alert_rule")
+}
+
+/// 审计日志表
+model WorkflowAuditLog {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  workflowId BigInt?  @map("workflow_id") @db.UnsignedBigInt
+  userId     BigInt   @map("user_id") @db.UnsignedBigInt
+  action     String   @map("action") @db.VarChar(32) // CREATE/EDIT/PUBLISH/PAUSE/OFFLINE/EXECUTE/CANCEL/DELETE
+  detail     Json?    @map("detail")
+  ipAddress  String?  @map("ip_address") @db.VarChar(64)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([workflowId], map: "idx_workflow")
+  @@index([userId], map: "idx_user")
+  @@index([action], map: "idx_action")
+  @@index([createdAt], map: "idx_created")
+  @@map("workflow_audit_log")
+}
