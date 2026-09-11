@@ -134,6 +134,8 @@ model Log {
   originalUrl String? @db.VarChar(255)
   createTime  BigInt? @map("createTime")
 
+  // 日志查询（WHERE logType ORDER BY logId DESC）在 500w+ 行表上必须走索引，否则全表扫描导致接口超时
+  @@index([logType, logId], map: "idx_log_type_log_id")
   @@map("log")
 }
 
