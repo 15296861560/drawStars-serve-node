@@ -34,6 +34,13 @@ function platformMatches(platforms: string[], platform?: string) {
   if (!platform) return true
   const p = platform.toLowerCase()
   if (p === 'web') return platforms.some(x => x.toLowerCase() === 'h5')
+  if (isAppPlatform(p)) {
+    // App 壳内置 webview，可直接加载 h5 模块（zip 离线包或在线 moduleUrl），故 Android/iOS 请求也可见 h5 模块
+    return platforms.some(x => {
+      const t = x.toLowerCase()
+      return t === p || t === 'h5'
+    })
+  }
   return platforms.some(x => x.toLowerCase() === p)
 }
 
@@ -62,12 +69,6 @@ function compareSemver(a?: string | null, b?: string | null): number {
 
 function isHttpsUrl(url?: string | null) {
   return /^https:\/\//i.test(String(url || '').trim())
-}
-
-function needsOnlineUrl(platforms: string[]) {
-  return platforms.some(p =>
-    ['h5', 'mp-weixin', 'mp', 'mini'].includes(p.toLowerCase())
-  )
 }
 
 @Injectable()
@@ -168,6 +169,7 @@ export class MobileService {
         releaseNotes: ver?.releaseNotes || '',
         forceUpdate: !!ver?.forceUpdate,
         checksum: ver?.checksum || '',
+        hasPackage: !!ver?.filePath,
         allowOpenAfterOffline: false
       })
     }
@@ -561,39 +563,45 @@ export class MobileService {
         data: null
       }
     }
-    if (needsOnlineUrl(platforms)) {
-      if (!app.moduleUrl) {
-        return {
-          status: false,
-          msg: '发布门禁：含 h5/小程序必须填写 module_url',
-          data: null
-        }
-      }
-      if (
-        !isHttpsUrl(app.moduleUrl) &&
-        !String(app.moduleUrl).startsWith('/')
-      ) {
-        return {
-          status: false,
-          msg: '发布门禁：module_url 须为 https 或站内相对路径',
-          data: null
-        }
+    // 小程序端无法安装本地 zip，必须在线 module_url
+    const isMp = platforms.some(p =>
+      ['mp-weixin', 'mp', 'mini'].includes(p.toLowerCase())
+    )
+    if (isMp && !app.moduleUrl) {
+      return {
+        status: false,
+        msg: '发布门禁：小程序平台必须填写 module_url',
+        data: null
       }
     }
-    const needZip = platforms.some(p =>
-      ['android', 'ios', 'app'].includes(p.toLowerCase())
-    )
+    if (
+      app.moduleUrl &&
+      !isHttpsUrl(app.moduleUrl) &&
+      !String(app.moduleUrl).startsWith('/')
+    ) {
+      return {
+        status: false,
+        msg: '发布门禁：module_url 须为 https 或站内相对路径',
+        data: null
+      }
+    }
+    // h5 模块支持两种交付方式：在线 module_url 或 zip 离线包（壳 App 内下载解压后直访）
+    const h5Offline =
+      platforms.some(p => p.toLowerCase() === 'h5') && !app.moduleUrl
+    const needZip =
+      platforms.some(p => ['android', 'ios', 'app'].includes(p.toLowerCase())) ||
+      h5Offline
     if (needZip && !app.filePath) {
       return {
         status: false,
-        msg: '发布门禁：含 App 平台必须上传 zip',
+        msg: '发布门禁：App 平台与离线 H5 平台必须上传 zip',
         data: null
       }
     }
     if (needZip && !app.checksum) {
       return {
         status: false,
-        msg: '发布门禁：含 App 平台必须填写 checksum',
+        msg: '发布门禁：App 平台与离线 H5 平台必须填写 checksum',
         data: null
       }
     }

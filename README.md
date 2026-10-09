@@ -206,3 +206,20 @@ GitHub Actions（[`.github/workflows/docker-deploy.yml`](.github/workflows/docke
 - ESLint + Prettier（配置见 [`.eslintrc.cjs`](.eslintrc.cjs)、[`.prettierrc.cjs`](.prettierrc.cjs)）
 - `pnpm lint` 检查，`pnpm lint:fix` 自动修复
 - `pnpm format` 格式化 `src/`、`prisma/seed-rbac.ts` 等
+
+## 生态导航
+
+本项目是 DrawStars 生态的核心后端，配套项目见[生态总览](../README.md)：
+
+| 项目 | 关系 |
+| ------ | ------ |
+| [drawStars-Vue3](../drawStars-Vue3) | 现行 Web 前端（`:8081`），`/api` 代理到本服务 dev 端口 `8011` |
+| [drawStars-platform](../drawStars-platform) | 移动端壳（uni-app），消费本服务 `mobile` 模块接口与模块工单机制 |
+| [drawStars-e2e](../drawStars-e2e) | Playwright E2E 测试，直连 `:8011` 做登录与造数 |
+| [drawStarts-notify-serve](../drawStarts-notify-serve) | 独立通知 WS 中间件，可通过其 `adapters/external.ts` 模式嵌入本服务（对应 `NOTIFY_PORT` `8030/8031`） |
+| [drawStarts-Notify](../drawStarts-Notify) | 浏览器通知 SDK，对接上述通知服务 |
+| [drawStarts-SQL](../drawStarts-SQL) | 行政区划 `province` 表数据脚本（Prisma `Province` 模型消费） |
+| [drawStars](../drawStars) | Vue 2 旧版前端（存档） |
+| [draw-stars-ui](../draw-stars-ui) | 组件库（Vue3 版 `draw-stars-ui@1.x` 供 Vue3 前端使用） |
+
+> 鉴权约定：请求头 `accessToken`（非 `Authorization: Bearer`），与各前端/测试项目保持一致。
