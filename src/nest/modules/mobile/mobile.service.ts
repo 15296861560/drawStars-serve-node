@@ -319,7 +319,12 @@ export class MobileService {
     }
   }
 
-  async download(code: string, platform?: string, userId?: number) {
+  async download(
+    code: string,
+    platform?: string,
+    userId?: number,
+    origin?: string
+  ) {
     if (!isAppPlatform(platform)) {
       return {
         status: false,
@@ -367,9 +372,15 @@ export class MobileService {
     let fileUrl = ver.filePath
     try {
       const parsed = JSON.parse(ver.filePath)
-      fileUrl = parsed.filePath || parsed.url || ver.filePath
+      // 兼容上传组件的数组格式 [{filePath, url}] 与对象格式 {filePath|url}
+      const item = Array.isArray(parsed) ? parsed[0] : parsed
+      fileUrl = item?.filePath || item?.url || ver.filePath
     } catch {
       /* plain url */
+    }
+    // 相对路径（本地 uploadDir 静态包）按请求 origin 拼成绝对地址，App 壳需要完整 URL 下载
+    if (origin && fileUrl.startsWith('/') && !fileUrl.startsWith('//')) {
+      fileUrl = origin.replace(/\/$/, '') + fileUrl
     }
     const expireAt = Date.now() + 600_000
     const token = createHmac(
@@ -589,8 +600,9 @@ export class MobileService {
     const h5Offline =
       platforms.some(p => p.toLowerCase() === 'h5') && !app.moduleUrl
     const needZip =
-      platforms.some(p => ['android', 'ios', 'app'].includes(p.toLowerCase())) ||
-      h5Offline
+      platforms.some(p =>
+        ['android', 'ios', 'app'].includes(p.toLowerCase())
+      ) || h5Offline
     if (needZip && !app.filePath) {
       return {
         status: false,

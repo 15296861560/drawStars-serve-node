@@ -17,6 +17,7 @@ import { MobileP1Service } from './mobile-p1.service'
 type AuthedReq = {
   auth?: { uid?: string }
   query?: Record<string, unknown>
+  headers?: Record<string, any>
 }
 
 function uidOf(req: AuthedReq): number | undefined {
@@ -24,6 +25,15 @@ function uidOf(req: AuthedReq): number | undefined {
   if (!uid) return undefined
   const n = Number(uid)
   return Number.isFinite(n) ? n : undefined
+}
+
+/** 请求来源 origin（支持代理头），用于把本地 uploadDir 静态包路径拼成绝对地址 */
+function originOf(req: AuthedReq): string | undefined {
+  const h = req?.headers || {}
+  const host = h['x-forwarded-host'] || h.host
+  if (!host) return undefined
+  const proto = h['x-forwarded-proto'] || 'http'
+  return `${proto}://${Array.isArray(host) ? host[0] : host}`
 }
 
 @Controller('mobile')
@@ -59,7 +69,8 @@ export class MobileController {
     return this.mobileService.download(
       decodeURIComponent(code),
       body?.platform || query.platform,
-      uidOf(req)
+      uidOf(req),
+      originOf(req)
     )
   }
 
