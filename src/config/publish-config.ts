@@ -33,8 +33,8 @@ function envInt(key: string, fallback: number): number {
 
 const dev_config: AppConfig = {
   mysql: {
-    host: '192.168.1.3',
-    port: 44925,
+    host: '127.0.0.1',
+    port: 3306,
     user: 'drawStars',
     password: 'Admin_123',
     database: 'draw_stars'

@@ -1548,3 +1548,166 @@ model WorkflowAuditLog {
   @@index([createdAt], map: "idx_created")
   @@map("workflow_audit_log")
 }
+
+/* ============================================================
+ * 赴星会 party 域（PRD 5.2 / 5.3）
+ * - 主键统一 String(32) ULID（服务端生成，区别于本仓库 BigInt 风格）
+ * - status 枚举对齐小程序大写形态：WAITING/PLAYING/SETTLING/CLOSED
+ * - client_key：正式 = TOKEN_VERIFY 的 uid；demo = 请求来源 IP
+ * - 结算在客户端本地完成不上传，服务端仅做会话状态机与惰性清扫
+ * ============================================================ */
+
+/// 星聚局会话表
+model PartySession {
+  id           String    @id @db.VarChar(32) // ULID
+  code         String    @unique @db.VarChar(8) // 6 位桌码（剔 0/O/1/I）
+  gameType     String    @map("game_type") @db.VarChar(16) // tod/draw/lady/bluff/dice
+  level        String    @db.VarChar(16) // gentle/standard/starry
+  themeTags    Json      @map("theme_tags") // 主题标签数组
+  rounds       Int // 总轮数；0 = 自然终局（lady/dice）
+  currentRound Int       @default(0) @map("current_round") // 开局后 >= 1
+  playerLimit  Int       @map("player_limit") // 2-8
+  penaltyMode  String    @map("penalty_mode") @db.VarChar(16) // drink/points
+  penaltyText  String    @map("penalty_text") @db.VarChar(255) // 惩罚文案
+  joker        Boolean   @default(false) @db.TinyInt // lady 54 张模式
+  status       String    @db.VarChar(16) // WAITING/PLAYING/SETTLING/CLOSED
+  createdAt    DateTime  @default(now()) @map("created_at")
+  startedAt    DateTime? @map("started_at")
+  closedAt     DateTime? @map("closed_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  players      PartySessionPlayer[]
+  roundRecords PartyRound[]
+  cards        PartyCard[]
+
+  @@index([status], map: "idx_status")
+  @@index([gameType], map: "idx_game_type")
+  @@index([createdAt], map: "idx_created")
+  @@map("party_session")
+}
+
+/// 星聚局玩家席位表
+model PartySessionPlayer {
+  id          String   @id @db.VarChar(32) // ULID
+  sessionId   String   @map("session_id") @db.VarChar(32)
+  clientKey   String   @map("client_key") @db.VarChar(64) // 身份键：uid 或内网 IP（demo）
+  name        String   @db.VarChar(32)
+  avatarUrl   String   @default("") @map("avatar_url") @db.VarChar(255)
+  ready       Boolean  @default(false) @db.TinyInt
+  isHost      Boolean  @default(false) @map("is_host") @db.TinyInt
+  online      Boolean  @default(true) @db.TinyInt
+  absent      Boolean  @default(false) @db.TinyInt // 房主标记离席
+  joinedRound Int      @default(1) @map("joined_round") // 中途归来/加入的起始轮
+  extra       Json? // waiting 页 strong start 等扩展位
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  session PartySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, clientKey], map: "uk_session_client")
+  @@index([clientKey], map: "idx_client_key")
+  @@map("party_session_player")
+}
+
+/// 星聚局轮次记录表（占位：结算在客户端本地完成，预留迁移位）
+model PartyRound {
+  id        String   @id @db.VarChar(32)
+  sessionId String   @map("session_id") @db.VarChar(32)
+  roundNo   Int      @map("round_no")
+  data      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session PartySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, roundNo], map: "uk_session_round")
+  @@map("party_round")
+}
+
+/// 赴星纪念卡表（占位：miss 时由会话数据即时生成骨架卡）
+model PartyCard {
+  id        String   @id @db.VarChar(32) // 'card_<sessionId>'
+  sessionId String   @map("session_id") @db.VarChar(32)
+  data      Json // 纪念卡 JSON（小程序 mockCard 同形）
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session PartySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId], map: "idx_session")
+  @@map("party_card")
+}
+
+/// 真心话大冒险题库表（占位：现由 party/data/tod.js 供题，预留迁移位）
+model PartyQuestion {
+  id        String   @id @db.VarChar(32)
+  gameType  String   @map("game_type") @db.VarChar(16)
+  kind      String   @db.VarChar(16) // truth/dare
+  level     String   @db.VarChar(16) // gentle/standard/starry
+  themes    Json
+  text      String   @db.VarChar(512)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([gameType, level], map: "idx_game_level")
+  @@map("party_question")
+}
+
+/// 你画我猜词库表（占位：现由 party/data/draw-words.js 供词，预留迁移位）
+model PartyWordbank {
+  id        String   @id @db.VarChar(32)
+  level     String   @db.VarChar(16)
+  theme     String   @db.VarChar(16)
+  word      String   @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([level, theme], map: "idx_level_theme")
+  @@map("party_wordbank")
+}
+
+/// 用户星愿表（一人一愿；PRD 4.8 每日限改 1 次）
+model StarWish {
+  id         String   @id @db.VarChar(32)
+  clientKey  String   @unique @map("client_key") @db.VarChar(64)
+  text       String   @db.VarChar(120) // ≤40 字
+  theme      String   @db.VarChar(16) // WISH_THEMES 七选一
+  updatedAt  DateTime @map("updated_at") // 显式维护；回包转毫秒对齐 mock
+  updateKey  String   @map("update_key") @db.VarChar(16) // YYYYMMDD，当日限改判定键
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("star_wish")
+}
+
+/// 星愿墙点赞表（liked 去重 + 计数；wish_id 为墙条目 id 或星愿 id）
+model StarWishLike {
+  id        String   @id @db.VarChar(32)
+  wishId    String   @map("wish_id") @db.VarChar(64)
+  clientKey String   @map("client_key") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([wishId, clientKey], map: "uk_wish_client")
+  @@index([clientKey], map: "idx_client_key")
+  @@map("star_wish_like")
+}
+
+/// 星聚档案表（client_key 维度星光本位；新账号诚实 0 值）
+model PartyProfile {
+  id        String   @id @db.VarChar(32)
+  clientKey String   @unique @map("client_key") @db.VarChar(64)
+  name      String   @db.VarChar(32)
+  avatarUrl String   @default("") @map("avatar_url") @db.VarChar(255)
+  starVal   Int      @default(0) @map("star_val")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("party_profile")
+}
+
+/// 徽章种子表（占位：现由 party/data/constants.js 推导下发，预留后台运营位）
+model PartyBadge {
+  id        String   @id @db.VarChar(32)
+  key       String   @unique @db.VarChar(32)
+  emoji     String   @db.VarChar(16)
+  label     String   @db.VarChar(32)
+  condition String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("party_badge")
+}
