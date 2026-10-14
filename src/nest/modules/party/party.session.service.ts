@@ -1,5 +1,5 @@
 /**
- * 星会会话：18 端点契约的会话部分（服务端全责对齐小程序现有形状）
+ * 趣局会话：18 端点契约的会话部分（服务端全责对齐小程序现有形状）
  * - 所有返回恒 200 裸回包；规则性拒绝一律形内语义（{} / 渲染不动）
  * - 渲染注入 mode:'online'；viewerKey 行 id 渲染为 'u_me'
  */
@@ -7,6 +7,8 @@ import { Injectable } from '@nestjs/common'
 import type { Prisma, PartySession, PartySessionPlayer } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { PartyProfileService } from './party.profile.service'
+import { PartyAdminService } from './party.admin.service'
+import { PartyGameService } from './games/party.game.service'
 import { GAME_MAP, PENALTY_DEFAULT, TOD_THEMES, randomCode } from './data/constants'
 import { broadcastChannel } from '../../../public/ws/ws-hub'
 import {
@@ -31,7 +33,9 @@ const GAME_KEYS = Object.keys(GAME_MAP as Record<string, unknown>)
 export class PartySessionService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly profileService: PartyProfileService
+    private readonly profileService: PartyProfileService,
+    private readonly gameService: PartyGameService,
+    private readonly adminService: PartyAdminService
   ) {}
 
   /* ---------- 渲染 ---------- */
@@ -124,6 +128,16 @@ export class PartySessionService {
   async create(body: Record<string, any>, viewerKey: string) {
     const src = body || {}
     const gameType = GAME_KEYS.indexOf(src.gameType) >= 0 ? src.gameType : 'tod'
+    // Admin 域游戏开关（PRD 8.6 软灰度）：offline → 无 id 回包，小程序同网络失败自然路径不进房
+    const offlineInfo = await this.adminService.checkGameOnline(gameType)
+    if (offlineInfo) {
+      return {
+        offline: true,
+        gameType,
+        gameName: offlineInfo.gameName,
+        hint: offlineInfo.hint,
+      }
+    }
     const level = LEVEL_KEYS.indexOf(src.level) >= 0 ? src.level : 'standard'
     const defRounds = DEFAULT_ROUNDS[gameType] != null ? DEFAULT_ROUNDS[gameType] : 5
     const rounds =
@@ -279,6 +293,8 @@ export class PartySessionService {
           rounds: updated.rounds,
         }))
         await this.broadcastPlayers(id)
+        // 级联开局编排：策略运行时初始化 + 首个 new_round 广播（GameStrategy 框架挂接点）
+        await this.gameService.onSessionStart(updated, await this.playersOf(id))
         return this.renderSession(updated, await this.playersOf(id), viewerKey)
       }
       case 'kick': {
@@ -317,6 +333,8 @@ export class PartySessionService {
         })
         await this.upsertCard(updated, players)
         this.emit(id, 'session.close', () => ({}))
+        // 级联清场：策略运行时与 WS 缓存回收
+        this.gameService.onSessionClose(id)
         return this.renderSession(updated, players, viewerKey)
       }
       default:
@@ -325,7 +343,7 @@ export class PartySessionService {
     return this.renderedAfterChange(id, viewerKey)
   }
 
-  /* ---------- 7. 我的历史星会 ---------- */
+  /* ---------- 7. 我的历史趣局 ---------- */
   async mine(viewerKey: string) {
     const rows = await this.prisma.client.partySessionPlayer.findMany({
       where: { clientKey: viewerKey },
@@ -349,7 +367,7 @@ export class PartySessionService {
     const badge = MVP_BADGES[session.gameType] || '本场 MVP'
     return {
       id: 'card_' + session.id,
-      title: '赴星纪念卡',
+      title: '拾星纪念卡',
       sessionMeta: {
         sessionId: session.id,
         gameType: session.gameType,
@@ -377,7 +395,7 @@ export class PartySessionService {
   private emptyCard(id: string) {
     return {
       id: 'card_' + id,
-      title: '赴星纪念卡',
+      title: '拾星纪念卡',
       sessionMeta: {
         sessionId: id,
         gameType: '',
@@ -397,7 +415,8 @@ export class PartySessionService {
   private async upsertCard(session: PartySession, players: PartySessionPlayer[]): Promise<void> {
     const data = this.buildCard(session, players)
     const jsonData = JSON.parse(JSON.stringify(data)) as Prisma.InputJsonValue
-    const cardId = 'card_' + session.id
+    // id 列 VarChar(32)：session.id 恰好 32 位可容纳；'card_' 前缀（38 位）曾超宽触发 P2000
+    const cardId = session.id
     await this.prisma.client.partyCard.upsert({
       where: { id: cardId },
       create: { id: cardId, sessionId: session.id, data: jsonData },
@@ -406,7 +425,7 @@ export class PartySessionService {
   }
 
   async card(id: string, viewerKey: string) {
-    const cardId = 'card_' + id
+    const cardId = id
     const stored = await this.prisma.client.partyCard.findUnique({ where: { id: cardId } })
     if (stored && stored.data) return stored.data
 

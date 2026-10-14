@@ -1550,7 +1550,7 @@ model WorkflowAuditLog {
 }
 
 /* ============================================================
- * 赴星会 party 域（PRD 5.2 / 5.3）
+ * 拾星趣局 party 域（PRD 5.2 / 5.3）
  * - 主键统一 String(32) ULID（服务端生成，区别于本仓库 BigInt 风格）
  * - status 枚举对齐小程序大写形态：WAITING/PLAYING/SETTLING/CLOSED
  * - client_key：正式 = TOKEN_VERIFY 的 uid；demo = 请求来源 IP
@@ -1623,7 +1623,7 @@ model PartyRound {
   @@map("party_round")
 }
 
-/// 赴星纪念卡表（占位：miss 时由会话数据即时生成骨架卡）
+/// 拾星纪念卡表（占位：miss 时由会话数据即时生成骨架卡）
 model PartyCard {
   id        String   @id @db.VarChar(32) // 'card_<sessionId>'
   sessionId String   @map("session_id") @db.VarChar(32)
@@ -1644,6 +1644,7 @@ model PartyQuestion {
   level     String   @db.VarChar(16) // gentle/standard/starry
   themes    Json
   text      String   @db.VarChar(512)
+  status    String   @default("online") @db.VarChar(16) // online/offline/pending_review（运营上下架）
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([gameType, level], map: "idx_game_level")
@@ -1656,6 +1657,7 @@ model PartyWordbank {
   level     String   @db.VarChar(16)
   theme     String   @db.VarChar(16)
   word      String   @db.VarChar(64)
+  status    String   @default("online") @db.VarChar(16) // online/offline/pending_review（运营上下架）
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([level, theme], map: "idx_level_theme")
@@ -1710,4 +1712,56 @@ model PartyBadge {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("party_badge")
+}
+
+/// 主题标签表（Admin 域：题库/词库筛选标签，PRD 4.10 主题管理）
+model PartyThemeTag {
+  id        String   @id @db.VarChar(32)
+  tagKey    String   @unique @map("tag_key") @db.VarChar(32)
+  name      String   @db.VarChar(64)
+  scene     String   @default("question") @db.VarChar(16) // question/wish
+  color     String   @default("") @db.VarChar(16)
+  emoji     String   @default("") @db.VarChar(16)
+  sort      Int      @default(0)
+  status    String   @default("online") @db.VarChar(16) // online/offline
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([scene], map: "idx_scene")
+  @@map("party_theme_tag")
+}
+
+/// 游戏配置表（Admin 域：游戏开关/人数/回合/等级，PRD 8.6 软灰度载体）
+model PartyGameConfig {
+  id          String   @id @db.VarChar(32)
+  gameType    String   @unique @map("game_type") @db.VarChar(16) // tod/draw/lady/bluff/dice
+  status      String   @default("online") @db.VarChar(16) // online/offline（9.1 下架流）
+  playerLimit Int      @default(8) @map("player_limit")
+  roundLimit  Int      @default(5) @map("round_limit")
+  level       String   @default("standard") @db.VarChar(16)
+  penaltyText String   @default("") @map("penalty_text") @db.VarChar(255)
+  extra       Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("party_game_config")
+}
+
+/// 举报表（Admin 域：PRD 8.4，pending→reviewing→closed 状态机，24h 内处理）
+model PartyReport {
+  id          String   @id @db.VarChar(32)
+  targetType  String   @map("target_type") @db.VarChar(32) // question/wordbank/prompt/word
+  targetId    String   @map("target_id") @db.VarChar(32)
+  sessionId   String?  @map("session_id") @db.VarChar(32)
+  reason      String   @db.VarChar(32)
+  description String   @default("") @db.VarChar(512)
+  status      String   @default("pending") @db.VarChar(16) // pending/reviewing/closed
+  handledBy   String?  @map("handled_by") @db.VarChar(64)
+  handleNote  String?  @map("handle_note") @db.VarChar(512)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([status], map: "idx_status")
+  @@index([targetType, targetId], map: "idx_target")
+  @@map("party_report")
 }

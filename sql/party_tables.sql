@@ -1,5 +1,5 @@
 -- ============================================
--- 赴星会 party 业务 - 数据库表结构
+-- 拾星趣局 party 业务 - 数据库表结构
 -- MySQL 8.0+（PRD 5.2 / 5.3）
 -- 执行: pnpm prisma:party-tables
 -- 说明:
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS `party_card` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
   KEY `idx_session` (`session_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='赴星纪念卡表（占位，miss时即时生成骨架卡）';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='拾星纪念卡表（占位，miss时即时生成骨架卡）';
 
 CREATE TABLE IF NOT EXISTS `party_question` (
   `id` VARCHAR(32) NOT NULL COMMENT '题目ID（ULID）',

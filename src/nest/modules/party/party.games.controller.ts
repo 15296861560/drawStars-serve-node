@@ -1,5 +1,5 @@
 /**
- * 星会小游戏控制器（端点 #9-#12）：tod 抽题 / draw 词条 / bluff 命题 / dice 摇骰
+ * 趣局小游戏控制器（端点 #9-#12）：tod 抽题 / draw 词条 / bluff 命题 / dice 摇骰
  */
 import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common'
 import { Public } from '../../common/decorators/public.decorator'

@@ -45,8 +45,8 @@ pnpm serve              # NODE_ENV=production node dist/main.js
 | `DATABASE_URL` | Prisma 连接串，留空则按 `MYSQL_*` 拼接 | — |
 | `MYSQL_HOST` / `MYSQL_PORT` / `MYSQL_USER` / `MYSQL_PASSWORD` / `MYSQL_DATABASE` | MySQL 连接信息 | `localhost` / `3306` / `drawStars` / `Admin_123` / `draw_stars` |
 | `REDIS_HOST` / `REDIS_PORT` | Redis 地址 | `127.0.0.1` / `6379` |
-| `SERVE_PORT` | HTTP API 端口 | `8010`（dev `8011`） |
-| `WS_PORT` | WebSocket 端口 | `8020`（dev `8021`） |
+| `SERVE_PORT` | HTTP API 端口 | `8010`（dev `8011`，对齐小程序 API_BASE） |
+| `WS_PORT` | WebSocket 端口 | `8020`（dev `8021`，对齐小程序 WS_URL） |
 | `NOTIFY_PORT` | 通知服务端口 | `8030`（dev `8031`） |
 | `IM_WS_PORT` | IM WebSocket 端口 | `8040`（dev `8041`） |
 | `UPLOAD_DIR` | 文件上传目录 | 项目根 `uploadDir` |

@@ -4,7 +4,7 @@
  * - party_profile：本机联调者 + 3 位星愿墙 NPC
  * - star_wish：联调者（updateKey 置为昨天，今天可再保存一次验证当日限改）+ NPC 墙内容
  * - star_wish_like：种子墙条目点赞 + 用户星愿点赞（likes/liked 渲染）
- * - party_session / party_session_player：1 场 CLOSED（历史星会）+ 1 场 WAITING（大厅快照）
+ * - party_session / party_session_player：1 场 CLOSED（历史趣局）+ 1 场 WAITING（大厅快照）
  * - party_card：CLOSED 会话的纪念卡（mockCard 同形库卡）
  * - party_badge：12 枚徽章运营位入库
  * - party_question / party_wordbank：占位迁移示意数据（运行时仍取 data/*.js）
@@ -98,7 +98,7 @@ const LIKES = [
   { id: 'seed_lk_032', wishId: wishId('seed_wish_001'), clientKey: NPC3 },
 ]
 
-/* ---------- 4. 星会 + 席位 ---------- */
+/* ---------- 4. 趣局 + 席位 ---------- */
 const TOD_CLOSED_AT = new Date(Date.now() - 3 * DAY + 48 * 60000)
 const TOD_STARTED_AT = new Date(Date.now() - 3 * DAY)
 
@@ -154,7 +154,7 @@ function cardData(sessionId: string, code: string) {
   const host = SESSIONS[0].players[0]
   return {
     id: 'card_' + sessionId,
-    title: '赴星纪念卡',
+    title: '拾星纪念卡',
     sessionMeta: {
       sessionId,
       gameType: 'tod',
@@ -189,10 +189,10 @@ const BADGES = [
   { key: 'dice_killer', emoji: '🎯', label: '骰子杀手', condition: '开牌成功 20 次' },
   { key: 'convener', emoji: '📣', label: '召集人', condition: '创建 10 场对局' },
   { key: 'social_star', emoji: '🌟', label: '八面玲珑', condition: '单场 8 人局房主' },
-  { key: 'night_owl', emoji: '🌃', label: '星夜不倦', condition: '连续 3 天赴星会' },
+  { key: 'night_owl', emoji: '🌃', label: '星夜不倦', condition: '连续 3 天拾星趣局' },
   { key: 'gentle_heart', emoji: '🤍', label: '温柔以对', condition: '单场零跳过' },
   { key: 'star_marker', emoji: '✨', label: '点星的人', condition: '星愿被点赞 50 次' },
-  { key: 'star_messenger', emoji: '💌', label: '赴星信使', condition: '纪念卡分享 10 次' },
+  { key: 'star_messenger', emoji: '💌', label: '拾星信使', condition: '纪念卡分享 10 次' },
 ]
 
 /* ---------- 7. 题库 / 词库占位迁移示意（运行时仍由 data/*.js 供题） ---------- */

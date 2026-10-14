@@ -53,7 +53,7 @@ export function resolveClientKey(request: PartyRequestLike): string {
   return 'ip_' + normalizeIp(ip)
 }
 
-/** WS 升级请求等无 express Request 的场景：手动解析 header（accesstoken / access-token / Bearer） */
+/** WS 升级请求等无 express Request 的场景：手动解析 header（accesstoken / access-token / Bearer；IP 观众键取 XFF 优先，与 REST viewerKey 对齐） */
 export function resolveClientKeyFromHeaders(
   headers: Record<string, unknown>,
   remoteAddress?: string | null
@@ -68,6 +68,18 @@ export function resolveClientKeyFromHeaders(
     const tk = payload ? authUidKey(payload as PartyRequestLike['auth']) : ''
     if (tk) return tk
   }
+  // 反向代理链路下与 REST 侧 viewerKey 同源取 XFF 首跳；直连场景无该头走 remoteAddress
+  const xffRaw = headers['x-forwarded-for']
+  const xffFirst = (
+    typeof xffRaw === 'string'
+      ? xffRaw
+      : Array.isArray(xffRaw) && typeof xffRaw[0] === 'string'
+        ? xffRaw[0]
+        : ''
+  )
+    .split(',')[0]
+    .trim()
+  if (xffFirst) return 'ip_' + normalizeIp(xffFirst)
   return 'ip_' + normalizeIp(remoteAddress)
 }
 
@@ -206,11 +218,17 @@ export function channelOf(sessionId: string): string {
   return 'party.session.' + sessionId
 }
 
+/** channelOf 反函数：'party.session.<id>' → id；非该前缀返回空串 */
+export function sessionIdOf(channelId: string): string {
+  const p = 'party.session.'
+  return channelId.startsWith(p) ? channelId.slice(p.length) : ''
+}
+
 export function partyEnvelope(channelId: string, type: string, data: unknown): string {
   return JSON.stringify({ ns: 'party.session', channelId, type, data })
 }
 
-/** 最近星会历史行（home 列表与 profile.history 同一形状） */
+/** 最近趣局历史行（home 列表与 profile.history 同一形状） */
 export function buildHistoryRow(session: PartySession, players: PartySessionPlayer[]) {
   const gameMap = GAME_MAP as Record<string, { name: string; emoji: string }>
   const meta = gameMap[session.gameType]

@@ -17,6 +17,7 @@ export interface AppConfig {
   notify_port: number
   im_ws_port: number
   uploadDir?: string
+  admin_key: string
 }
 
 function envStr(key: string, fallback: string): string {
@@ -41,11 +42,14 @@ const dev_config: AppConfig = {
   },
   redis_host: '127.0.0.1',
   redis_port: 6379,
+  // 各端统一（PRD 7.1/7.2）：SERVE_PORT=8010（dev 8011）/ WS_PORT=8020（dev 8021）
+  // party 联调对齐小程序 drawStars-party：API_BASE=http://127.0.0.1:8011 / WS_URL=ws://127.0.0.1:8021
   serve_port: 8011,
   ws_port: 8021,
   notify_port: 8031,
   im_ws_port: 8041,
-  uploadDir: path.join(__dirname, '../../uploadDir')
+  uploadDir: path.join(__dirname, '../../uploadDir'),
+  admin_key: 'party-admin-dev'
 }
 
 /** release 默认；部署时可用环境变量覆盖 */
@@ -63,7 +67,9 @@ const release_config: AppConfig = {
   ws_port: 8020,
   notify_port: 8030,
   im_ws_port: 8040,
-  uploadDir: path.join(__dirname, '../../uploadDir')
+  uploadDir: path.join(__dirname, '../../uploadDir'),
+  // TODO(deploy)：上线必换强随机 key（≥32 位），并通过环境变量 PARTY_ADMIN_KEY 覆盖
+  admin_key: 'CHANGE_ME_ON_DEPLOY'
 }
 
 const base = process.env.NODE_ENV === 'production' ? release_config : dev_config
@@ -85,7 +91,8 @@ const config: AppConfig = {
   uploadDir: envStr(
     'UPLOAD_DIR',
     base.uploadDir || path.join(__dirname, '../../uploadDir')
-  )
+  ),
+  admin_key: envStr('PARTY_ADMIN_KEY', base.admin_key)
 }
 
 export function buildDatabaseUrl(mysql: MysqlConfig): string {

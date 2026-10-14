@@ -10,6 +10,8 @@ import config from '../../config/publish-config'
 import { resolveClientKeyFromHeaders } from '../../nest/modules/party/party.util'
 import { joinChannel, leaveChannel } from './ws-hub'
 import type { WsMember } from './ws-hub'
+import { partyWsBridge } from './party-ws-bridge'
+import type { PartyWsEnvelope } from './party-ws-bridge'
 
 const port = config.ws_port
 
@@ -20,6 +22,23 @@ function channelOfRoom(req: IncomingMessage): string {
     return c ? c.trim() : ''
   } catch {
     return ''
+  }
+}
+
+/**
+ * 解析 party WS 信封：JSON 且带字符串 type 字段才视为策略域信封，否则 null
+ * （非信封保留原 echo 兼容行为）
+ */
+function parsePartyEnvelope(text: string): PartyWsEnvelope | null {
+  try {
+    const p = JSON.parse(text) as unknown
+    if (p && typeof p === 'object' && !Array.isArray(p)) {
+      const t = (p as { type?: unknown }).type
+      if (typeof t === 'string' && t) return p as PartyWsEnvelope
+    }
+    return null
+  } catch {
+    return null
   }
 }
 
@@ -41,11 +60,22 @@ ws.on('connection', (client: WebSocket, req: IncomingMessage) => {
   const channelId = channelOfRoom(req)
   const clientKey = resolveClientKeyFromHeaders(req.headers, req.socket.remoteAddress || '')
   const member: WsMember = { socket: client, channelId, clientKey }
-  if (channelId) joinChannel(member)
+  if (channelId) {
+    joinChannel(member)
+    // party 编排层：新成员入频道回放钩子（网关未绑定时为空操作）
+    partyWsBridge()?.onMemberJoined(member)
+  }
 
   client.send('连接WebSocket成功')
   client.on('message', msg => {
-    console.log('来自前端的数据：' + msg)
+    const text = typeof msg === 'string' ? msg : msg.toString()
+    const envelope = parsePartyEnvelope(text)
+    if (envelope && channelId) {
+      // party 策略域信封：路由到编排层（viewerKey 已按连接身份解析，客户端不可伪造）
+      partyWsBridge()?.onMemberMessage(member, envelope)
+      return
+    }
+    console.log('来自前端的数据：' + text)
     client.send('服务端发送的信息：' + new Date().toLocaleString())
   })
 

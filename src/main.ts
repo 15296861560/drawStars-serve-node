@@ -11,6 +11,8 @@ import { AppModule } from './nest/app.module'
 import config from './config/publish-config'
 import { initAccessTokenService } from './lib/access-token-service'
 import { AllExceptionsFilter } from './nest/common/filters/all-exceptions.filter'
+import { bindPartyWsGateway } from './public/ws/party-ws-bridge'
+import { PartyGameService } from './nest/modules/party/games/party.game.service'
 
 async function bootstrap() {
   await initAccessTokenService()
@@ -18,6 +20,13 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     cors: true
   })
+
+  // REST viewerKey 与 WS 侧同源：信任 XFF 首跳，使 request.ip 不再折叠为 127.0.0.1
+  // （party.util resolveClientKey 依赖 request.ip；未开 trust proxy 时所有 REST 客户端共享同一 identity）
+  app.getHttpAdapter().getInstance().set('trust proxy', true)
+
+  // party WS 网关绑定：Nest 容器就绪后接入 wsServer 静态插槽（party 编排链激活）
+  bindPartyWsGateway(app.get(PartyGameService))
 
   app.use((req, _res, next) => {
     if (req.url === '/api') {

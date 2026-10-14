@@ -66,7 +66,7 @@ const WISH_THEMES = ['青春', '暗恋', '旅行', '未来', '遗憾', '愿望',
 
 /** 段位系统（PRD 4.9） */
 const RANKS = [
-  { key: 'newcomer', label: '赴星新人', min: 0, max: 99, emoji: '🌱' },
+  { key: 'newcomer', label: '拾星新人', min: 0, max: 99, emoji: '🌱' },
   { key: 'envoy', label: '星光使者', min: 100, max: 499, emoji: '🌠' },
   { key: 'guardian', label: '星愿守护者', min: 500, max: 1999, emoji: '🌙' },
   { key: 'captain', label: '宇宙队长', min: 2000, max: Infinity, emoji: '🚀' },
@@ -86,10 +86,10 @@ const BADGES = [
   { key: 'dice_killer', emoji: '🎯', label: '骰子杀手', condition: '开牌成功 20 次' },
   { key: 'convener', emoji: '📣', label: '召集人', condition: '创建 10 场对局' },
   { key: 'social_star', emoji: '🌟', label: '八面玲珑', condition: '单场 8 人局房主' },
-  { key: 'night_owl', emoji: '🌃', label: '星夜不倦', condition: '连续 3 天赴星会' },
+  { key: 'night_owl', emoji: '🌃', label: '星夜不倦', condition: '连续 3 天拾星趣局' },
   { key: 'gentle_heart', emoji: '🤍', label: '温柔以对', condition: '单场零跳过' },
   { key: 'star_marker', emoji: '✨', label: '点星的人', condition: '星愿被点赞 50 次' },
-  { key: 'star_messenger', emoji: '💌', label: '赴星信使', condition: '纪念卡分享 10 次' },
+  { key: 'star_messenger', emoji: '💌', label: '拾星信使', condition: '纪念卡分享 10 次' },
 ]
 
 /**
