@@ -1,7 +1,7 @@
 import 'reflect-metadata'
 import './env'
 import './public/utils/axios/axios-config'
-import './public/ws/wsServer'
+import { attachPartyWsUpgrade } from './public/ws/wsServer'
 import './public/ws/notifyServer'
 import './config/redis-config'
 
@@ -48,6 +48,8 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter())
 
   await app.listen(config.serve_port)
+  // 生产唯一可达 WS 入口是主端口（CF 只代理 443 白名单端口）：把 /ws upgrade 挂到 Nest http server
+  attachPartyWsUpgrade(app.getHttpServer())
   console.log(`nest server run port ${config.serve_port}`)
 }
 
