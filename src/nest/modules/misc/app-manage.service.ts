@@ -255,8 +255,34 @@ export class AppManageService {
     return { status: true, msg: '更新成功', data: this.toRow(row) }
   }
 
+  /**
+   * 删除应用时联动清理壳应用发布目录（mobile_module / mobile_module_version /
+   * mobile_module_permission）。
+   * 不联动的话，壳应用 /mobile/modules 依旧能查到该模块并可下载旧包。
+   */
+  private async unlinkPublishedCatalog(moduleCode: string) {
+    await this.prisma.client.mobileModuleVersion.deleteMany({
+      where: { moduleCode }
+    })
+    await this.prisma.client.mobileModulePermission.deleteMany({
+      where: { moduleCode }
+    })
+    await this.prisma.client.mobileModule.deleteMany({
+      where: { moduleCode }
+    })
+  }
+
   async remove(id: number) {
-    await this.prisma.client.appManage.delete({ where: { id: BigInt(id) } })
+    const app = await this.prisma.client.appManage.findUnique({
+      where: { id: BigInt(id) }
+    })
+    if (!app) {
+      return { status: false, msg: '应用不存在', data: null }
+    }
+    if (app.moduleCode) {
+      await this.unlinkPublishedCatalog(app.moduleCode)
+    }
+    await this.prisma.client.appManage.delete({ where: { id: app.id } })
     return { status: true, msg: '删除成功', data: true }
   }
 
@@ -264,6 +290,14 @@ export class AppManageService {
     const list = (ids || []).map(Number).filter(Boolean)
     if (!list.length) {
       return { status: false, msg: '未选择数据', data: null }
+    }
+    const apps = await this.prisma.client.appManage.findMany({
+      where: { id: { in: list.map(id => BigInt(id)) } }
+    })
+    for (const app of apps) {
+      if (app.moduleCode) {
+        await this.unlinkPublishedCatalog(app.moduleCode)
+      }
     }
     await this.prisma.client.appManage.deleteMany({
       where: { id: { in: list.map(id => BigInt(id)) } }
