@@ -9,7 +9,7 @@ type AppBody = {
   name?: string
   description?: string
   version?: string
-  status?: string
+  status?: string // 兼容旧客户端入参，已废弃：状态只能由 发布/下架 动作变更
   icon?: string
   category?: string
   file_path?: string
@@ -82,12 +82,19 @@ export class AppManageService {
     })
   }
 
+  /**
+   * 说明：status 不在 mapBody 映射范围内。
+   * app_manage.status 的唯一语义 = 模块目录发布状态，只由发布动作写入：
+   *   - create 一律 draft（未发布）
+   *   - 发布成功 → published（publishFromAppManage）
+   *   - 下架 → unpublished（offlineFromAppManage）
+   * 新增/编辑弹窗不再允许自由选择状态，避免"表单选已发布但目录未同步"的不一致。
+   */
   private mapBody(body: AppBody) {
     return {
       name: body.name,
       description: body.description,
       version: body.version,
-      status: body.status,
       icon: body.icon,
       category: body.category,
       filePath: body.file_path ?? body.filePath,
@@ -179,7 +186,7 @@ export class AppManageService {
         name: mapped.name!,
         description: mapped.description || null,
         version: mapped.version || null,
-        status: mapped.status || 'draft',
+        status: 'draft',
         icon: mapped.icon || null,
         category: mapped.category || null,
         filePath: mapped.filePath ?? null,
@@ -216,7 +223,7 @@ export class AppManageService {
         ...(mapped.version !== undefined
           ? { version: mapped.version || null }
           : {}),
-        ...(mapped.status !== undefined ? { status: mapped.status } : {}),
+        // status 不随编辑变更：状态字段与发布目录保持同步，仅 发布/下架 动作可变更
         ...(mapped.icon !== undefined ? { icon: mapped.icon || null } : {}),
         ...(mapped.category !== undefined
           ? { category: mapped.category || null }
