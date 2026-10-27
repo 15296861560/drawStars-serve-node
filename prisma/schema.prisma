@@ -290,6 +290,43 @@ model AiMessage {
   @@map("ai_message")
 }
 
+/// AI 数据问数审计表（PRD 5.4：全量审计，含权限快照与 SQL 原文）
+model AiQueryAudit {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId         BigInt   @default(0) @map("user_id") @db.UnsignedBigInt // 0 = 未登录访客
+  userName       String   @default("guest") @map("user_name") @db.VarChar(64)
+  permissionCodes Json     @map("permission_codes") // 用户权限码快照
+  conversationId String?  @map("conversation_id") @db.VarChar(36)
+  question       String   @db.Text
+  datasetCode    String   @default("none") @map("dataset_code") @db.VarChar(32) // 未命中记 none
+  generatedSql   String?  @map("generated_sql") @db.Text
+  status         String   @db.VarChar(16) // success/denied/rejected/timeout/fail
+  errorCode      String?  @map("error_code") @db.VarChar(64)
+  rows           Int      @default(0) // ≤ 200
+  durationMs     Int      @default(0) @map("duration_ms")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([userId], map: "idx_user")
+  @@index([datasetCode], map: "idx_dataset")
+  @@index([status], map: "idx_status")
+  @@index([createdAt], map: "idx_created")
+  @@map("ai_query_audit")
+}
+
+/// AI 数据问数数据集注册表（PRD 5.5：数据字典 + 前置业务权限 + 表白名单 + 敏感字段）
+model AiDatasetRegistry {
+  code               String   @id @db.VarChar(32)
+  label              String   @db.VarChar(64)
+  allowedTables      Json     @map("allowed_tables")
+  requiredPermission String?  @map("required_permission") @db.VarChar(128)
+  sensitiveFields    Json     @map("sensitive_fields")
+  enabled            Boolean  @default(true) @db.TinyInt
+  description        String?  @db.Text // 供 LLM 路由与 NL2SQL 的表结构数据字典
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("ai_dataset_registry")
+}
+
 /// 应用管理（产品/安装包目录，区别于 app_info 凭证配置）
 model AppManage {
   id              BigInt  @id @default(autoincrement())

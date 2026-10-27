@@ -43,7 +43,7 @@ function authUidKey(auth: PartyRequestLike['auth']): string {
 export function normalizeIp(ip?: string | null): string {
   const s = String(ip || '').replace(/^::ffff:/, '')
   if (!s) return 'unknown'
-  return s.replace(/[ \[\]:;%]/g, '_')
+  return s.replace(/[ [\]:;%]/g, '_')
 }
 
 export function resolveClientKey(request: PartyRequestLike): string {

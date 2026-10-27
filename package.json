@@ -20,6 +20,8 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:seed-rbac": "tsx prisma/seed-rbac.ts",
+    "prisma:seed-ai-assistant": "tsx prisma/seed-ai-assistant.ts",
+    "prisma:ai-assistant-tables": "prisma db execute --file sql/ai_assistant_tables.sql --schema prisma/schema.prisma",
     "prisma:seed-party": "tsx prisma/seed-party.ts",
     "prisma:seed-workflow": "tsx prisma/seed-workflow.ts",
     "prisma:rbac-tables": "prisma db execute --file sql/rbac_tables.sql --schema prisma/schema.prisma",

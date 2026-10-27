@@ -508,6 +508,48 @@ const MENU_SEEDS: MenuSeed[] = [
     sort: 8
   },
   {
+    key: 'manage_logs_view',
+    parentKey: 'manage_logs',
+    name: '查看日志',
+    type: 3,
+    permission: 'system:logs:list',
+    sort: 1
+  },
+  {
+    key: 'manage_ai_assistant',
+    parentKey: 'manage',
+    name: 'AI 助手',
+    type: 1,
+    path: '',
+    permission: 'system:ai-assistant:use',
+    icon: 'ChatDotRound',
+    sort: 15
+  },
+  {
+    key: 'manage_ai_assistant_query',
+    parentKey: 'manage_ai_assistant',
+    name: '数据问数',
+    type: 3,
+    permission: 'system:ai-assistant:query',
+    sort: 1
+  },
+  {
+    key: 'manage_ai_assistant_voice',
+    parentKey: 'manage_ai_assistant',
+    name: '语音输入',
+    type: 3,
+    permission: 'system:ai-assistant:voice',
+    sort: 2
+  },
+  {
+    key: 'manage_ai_assistant_audit',
+    parentKey: 'manage_ai_assistant',
+    name: '问数审计',
+    type: 3,
+    permission: 'system:ai-assistant:audit',
+    sort: 3
+  },
+  {
     key: 'manage_survey',
     parentKey: 'manage',
     name: '问卷管理',
@@ -967,7 +1009,9 @@ const ROLE_SEEDS = [
       'mobile_scan',
       'mobile_feedback',
       'mobile_help',
-      'mobile_demo_module'
+      'mobile_demo_module',
+      'manage_ai_assistant',
+      'manage_ai_assistant_voice'
     ]
   },
   {
@@ -1005,7 +1049,9 @@ const ROLE_SEEDS = [
       'mobile_scan',
       'mobile_feedback',
       'mobile_help',
-      'mobile_demo_module'
+      'mobile_demo_module',
+      'manage_ai_assistant',
+      'manage_ai_assistant_voice'
     ]
   },
   {
@@ -1114,7 +1160,12 @@ const ROLE_SEEDS = [
       'workflow_btn_publish',
       'workflow_btn_audit',
       'workflow_btn_execute',
-      'workflow_btn_operate'
+      'workflow_btn_operate',
+      'manage_ai_assistant',
+      'manage_ai_assistant_query',
+      'manage_ai_assistant_voice',
+      'manage_ai_assistant_audit',
+      'manage_logs_view'
     ]
   },
   {

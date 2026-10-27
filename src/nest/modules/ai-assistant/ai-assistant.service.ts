@@ -12,6 +12,10 @@ import {
   resolveCapability
 } from './ai-assistant.capabilities'
 import { AiAssistantLlmService } from './ai-assistant.llm'
+import {
+  AiAssistantDataQueryService,
+  type DataQueryAuth
+} from './ai-assistant.data-query.service'
 import { AiAssistantBaiduService } from './ai-assistant.baidu.service'
 import type { ParsedUploadFile } from './ai-assistant.file.service'
 
@@ -25,8 +29,16 @@ export class AiAssistantService {
   constructor(
     private readonly repo: AiAssistantRepository,
     private readonly llm: AiAssistantLlmService,
-    private readonly baidu: AiAssistantBaiduService
+    private readonly baidu: AiAssistantBaiduService,
+    private readonly dataQuery: AiAssistantDataQueryService
   ) {}
+
+  /** 从会话主键还原问数身份（guest 无 uid，问数管道内统一拦截） */
+  private dqAuthFromKey(userKey: string): DataQueryAuth | undefined {
+    return userKey.startsWith('user:')
+      ? { uid: userKey.slice('user:'.length) }
+      : undefined
+  }
 
   userKey(auth?: { userId?: string | number } | null): string {
     if (auth?.userId != null) return `user:${auth.userId}`
@@ -130,6 +142,15 @@ export class AiAssistantService {
 
     if (capability) return capability
 
+    if (!extras?.fileMeta && this.dataQuery.isQueryIntent(userText)) {
+      const { reply } = await this.dataQuery.run({
+        question: userText,
+        conversationId,
+        auth: this.dqAuthFromKey(userKey)
+      })
+      return reply
+    }
+
     const llmText = await this.llm.chat(userText, history, extras?.fileExcerpt)
     if (llmText) {
       return {
@@ -200,6 +221,48 @@ export class AiAssistantService {
     return { userMessage, assistantMessage }
   }
 
+  /**
+   * 显式数据问数对话（PRD 7.1：POST /api/ai-assistant/data-query）：
+   * 与 chat 保持一致的消息落库与会话标题初始化，回复由问数管道生成。
+   */
+  async dataQueryChat(
+    auth: { userId?: string; uid?: string; permissions?: string[] } | undefined,
+    body: AiChatRequest
+  ): Promise<AiChatResponse & { sqlAuditId?: string }> {
+    const userId = auth?.userId ?? auth?.uid
+    const userKey = userId != null ? `user:${userId}` : 'guest'
+    const conversationId = await this.ensureConversationId(
+      userKey,
+      body.conversationId
+    )
+    body.conversationId = conversationId
+
+    const userInput = this.buildUserMessageInput(conversationId, body)
+    const userMessage = await this.repo.saveMessage(conversationId, userInput)
+
+    const { reply, sqlAuditId } = await this.dataQuery.run({
+      question: body.content,
+      conversationId,
+      auth: {
+        uid: userId != null ? String(userId) : undefined,
+        permissions: auth?.permissions
+      }
+    })
+    const assistantMessage = await this.repo.saveMessage(conversationId, reply)
+
+    if (
+      body.content &&
+      (await this.repo.getConversation(userKey, conversationId))?.title ===
+        '新对话'
+    ) {
+      await this.repo.touchConversation(conversationId, {
+        title: body.content.slice(0, 16) || '新对话'
+      })
+    }
+
+    return { userMessage, assistantMessage, sqlAuditId }
+  }
+
   writeSse(res: Response, event: string, data: unknown) {
     res.write(`event: ${event}\n`)
     res.write(`data: ${JSON.stringify(data)}\n\n`)
@@ -241,6 +304,22 @@ export class AiAssistantService {
       if (capability) {
         assistantBase = capability
         fullText = capability.content
+        this.writeSse(res, 'delta', { content: fullText })
+      } else if (
+        !extras?.fileMeta &&
+        this.dataQuery.isQueryIntent(body.content)
+      ) {
+        // 问数分支（PRD 4.5.3）：过程文案走 thinkingDelta，最终一次性 delta
+        this.writeSse(res, 'thinkingStart', {})
+        const { reply } = await this.dataQuery.run({
+          question: body.content,
+          conversationId,
+          auth: this.dqAuthFromKey(userKey),
+          onProgress: text =>
+            this.writeSse(res, 'thinkingDelta', { content: text })
+        })
+        assistantBase = reply
+        fullText = reply.content
         this.writeSse(res, 'delta', { content: fullText })
       } else if (await this.llm.isEnabled()) {
         assistantBase = {

@@ -139,6 +139,41 @@ export class AiAssistantLlmService {
     ]
   }
 
+  /**
+   * 数据问数 NL2SQL（PRD 4.5.3）：按白名单数据字典生成候选只读 SQL。
+   * 生成结果仍须经过词法校验器（ai-assistant.data-query.service）方可执行。
+   */
+  async generateSql(question: string, tableDict: string): Promise<string> {
+    const cfg = await this.aiConfig.getLlmConfig()
+    if (!cfg.apiKey) return ''
+
+    const messages: BaseMessage[] = [
+      new SystemMessage(
+        [
+          '你是数据查询 SQL 生成器。仅输出一条 MySQL 只读查询 SQL（以 SELECT 开头），不要输出任何解释、注释或 Markdown 代码块。',
+          '规则：',
+          '1. 只能查询数据字典中列出的表；可在这些表之间 JOIN。',
+          '2. 时间条件使用 NOW()/CURDATE()/DATE_SUB() 等函数推算，不要编造参数。',
+          '3. 所有输出列必须加中文别名（例如：SELECT COUNT(*) AS `总数`）。',
+          '4. 结尾不写分号；禁止任何写操作与注释。',
+          "5. 若无法只用数据字典中的表回答，输出：SELECT 'CANNOT_ANSWER' AS `提示`"
+        ].join('\n')
+      ),
+      new HumanMessage(
+        `可查询表结构数据字典：\n${tableDict}\n\n用户问题：${question}`
+      )
+    ]
+
+    try {
+      const model = this.createModel(cfg)
+      const response = await model.invoke(messages)
+      return this.extractText(response.content)
+    } catch (error) {
+      console.error('[ai-assistant] NL2SQL error:', this.formatError(error))
+      return ''
+    }
+  }
+
   async chat(
     userText: string,
     history: AiMessage[],
