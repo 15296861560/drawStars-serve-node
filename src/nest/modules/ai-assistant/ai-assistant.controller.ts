@@ -17,14 +17,14 @@ export class AiAssistantController {
   ) {}
 
   @Get('conversations')
-  listConversations(@CurrentUser() auth: { userId?: string } | undefined) {
+  listConversations(@CurrentUser() auth: { userId?: string; uid?: string } | undefined) {
     const key = this.aiAssistant.userKey(auth)
     return this.aiAssistant.getConversations(key)
   }
 
   @Post('conversations')
   createConversation(
-    @CurrentUser() auth: { userId?: string } | undefined,
+    @CurrentUser() auth: { userId?: string; uid?: string } | undefined,
     @Body() body: CreateConversationDto
   ) {
     const key = this.aiAssistant.userKey(auth)
@@ -33,7 +33,7 @@ export class AiAssistantController {
 
   @Get('conversations/:id/messages')
   getMessages(
-    @CurrentUser() auth: { userId?: string } | undefined,
+    @CurrentUser() auth: { userId?: string; uid?: string } | undefined,
     @Param('id') id: string
   ) {
     const key = this.aiAssistant.userKey(auth)
@@ -79,7 +79,7 @@ export class AiAssistantController {
 
   @Post('chat')
   async chat(
-    @CurrentUser() auth: { userId?: string } | undefined,
+    @CurrentUser() auth: { userId?: string; uid?: string } | undefined,
     @Body() body: AiChatRequest
   ) {
     const key = this.aiAssistant.userKey(auth)
@@ -92,7 +92,7 @@ export class AiAssistantController {
   @Post('chat/stream')
   @RawResponse()
   async chatStream(
-    @CurrentUser() auth: { userId?: string } | undefined,
+    @CurrentUser() auth: { userId?: string; uid?: string } | undefined,
     @Body() body: AiChatRequest & { fileExcerpt?: string },
     @Res() res: Response
   ) {

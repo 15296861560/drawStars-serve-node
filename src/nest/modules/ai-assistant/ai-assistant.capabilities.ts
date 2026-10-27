@@ -1,5 +1,6 @@
 import type { AiMessage, AiMessageType } from './ai-assistant.types'
 import type { AiAssistantBaiduService } from './ai-assistant.baidu.service'
+import { QUERY_INTENT_RE } from './ai-assistant.data-query.service'
 
 export interface CapabilityContext {
   baidu: AiAssistantBaiduService
@@ -13,6 +14,13 @@ export async function resolveCapability(
   ctx: CapabilityContext
 ): Promise<Omit<AiMessage, 'id' | 'createdAt'> | null> {
   const trimmed = userText.trim()
+
+  /**
+   * mock 演示（图表/表格/代码）只在不含问数意图词时兜底；
+   * 一旦命中问数意图（多少/哪些/趋势/占比…），让位给问数管道与 LLM，
+   * 避免真实数据问题被演示假数据劫持。
+   */
+  const demoOnly = !QUERY_INTENT_RE.test(trimmed)
 
   if (/天气|气温|温度|下雨|forecast/i.test(trimmed)) {
     const city = ctx.baidu.extractCity(trimmed)
@@ -63,7 +71,7 @@ export async function resolveCapability(
     }
   }
 
-  if (/图表|chart|趋势|折线|柱状/i.test(trimmed)) {
+  if (demoOnly && /图表|chart|折线|柱状/i.test(trimmed)) {
     return {
       conversationId,
       role: 'assistant',
@@ -82,7 +90,7 @@ export async function resolveCapability(
     }
   }
 
-  if (/表格|table|列表|数据表/i.test(trimmed)) {
+  if (demoOnly && /表格|table|数据表/i.test(trimmed)) {
     return {
       conversationId,
       role: 'assistant',
@@ -104,7 +112,7 @@ export async function resolveCapability(
     }
   }
 
-  if (/代码|code|vue|函数|组件/i.test(trimmed)) {
+  if (demoOnly && /代码|code|vue|函数|组件/i.test(trimmed)) {
     return {
       conversationId,
       role: 'assistant',

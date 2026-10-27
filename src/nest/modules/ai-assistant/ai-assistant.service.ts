@@ -40,8 +40,10 @@ export class AiAssistantService {
       : undefined
   }
 
-  userKey(auth?: { userId?: string | number } | null): string {
-    if (auth?.userId != null) return `user:${auth.userId}`
+  // token 解析注入的是 request.auth.uid（TokenPayload.uid），兼容历史 userId 形态
+  userKey(auth?: { userId?: string | number; uid?: string | number } | null): string {
+    const userId = auth?.userId ?? auth?.uid
+    if (userId != null) return `user:${userId}`
     return 'guest'
   }
 

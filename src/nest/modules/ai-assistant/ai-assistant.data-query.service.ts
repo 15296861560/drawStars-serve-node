@@ -17,7 +17,7 @@ import type { AiMessage } from './ai-assistant.types'
 export const AI_QUERY_PERMISSION = 'system:ai-assistant:query'
 
 /** 与前端 QUERY_INTENT_RE 保持一致的问数意图词 */
-const QUERY_INTENT_RE =
+export const QUERY_INTENT_RE =
   /多少|几条|几个|几人|统计|汇总|排行|排名|榜单|top\s*\d*|总量|总数|总计|占比|比例|完成率|发放量|明细|分布|趋势|有没有|哪些|情况如何|看一下|查询|查一下|帮我查|数量/i
 
 /** 单次最多返回行数（PRD 4.5.4：服务端强制 LIMIT） */
@@ -503,6 +503,20 @@ export class AiAssistantDataQueryService {
       }
     }
 
+    // 聚合空集（如 SUM 无匹配行）返回一行全 NULL，空白单元格在表格里不可见，
+    // 会造成「只有列头、没有数据」的观感。按业务语义统计值以 0 展示，
+    // 保留完整表格形态（PRD 4.6：表格回复始终可读）
+    const hasValue = rows.some(row =>
+      Object.values(row).some(v => v !== null && v !== '' && v !== undefined)
+    )
+    const displayRows = hasValue
+      ? rows
+      : rows.map(row => {
+          const zeroed: Record<string, string | number | boolean | null> = {}
+          for (const key of Object.keys(row)) zeroed[key] = 0
+          return zeroed
+        })
+
     const columns = Object.keys(rows[0]).map(key => ({
       prop: key,
       label: key
@@ -510,8 +524,10 @@ export class AiAssistantDataQueryService {
     return {
       ...base,
       type: 'table' as const,
-      content: `已为你查询到 ${rows.length} 行「${datasetLabels}」数据${result.length > MAX_QUERY_ROWS ? `（结果较多，仅展示前 ${MAX_QUERY_ROWS} 行，可缩小时间范围后继续追问）` : ''}：`,
-      payload: { columns, rows }
+      content: hasValue
+        ? `已为你查询到 ${rows.length} 行「${datasetLabels}」数据${result.length > MAX_QUERY_ROWS ? `（结果较多，仅展示前 ${MAX_QUERY_ROWS} 行，可缩小时间范围后继续追问）` : ''}：`
+        : `「${datasetLabels}」本期没有符合条件的记录，统计结果按 0 展示：`,
+      payload: { columns, rows: displayRows }
     }
   }
 }
