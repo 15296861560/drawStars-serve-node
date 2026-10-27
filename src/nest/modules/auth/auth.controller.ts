@@ -5,6 +5,7 @@ import { AuthService } from './auth.service'
 import { UsersService } from '../users/users.service'
 import userService from '../../../public/service/userService'
 import githubProvider from '../../../public/provider/oauth/githubProvider'
+import wechatProvider from '../../../public/provider/oauth/wechatProvider'
 import config from '../../../config/publish-config'
 
 @Public()
@@ -129,6 +130,69 @@ export class AuthController {
     try {
       await this.usersService.resetPassword(body)
       return { status: true, msg: '密码重置成功', data: null }
+    } catch (error) {
+      return {
+        status: false,
+        msg: error instanceof Error ? error.message : String(error),
+        data: null
+      }
+    }
+  }
+
+  @Post('loginByWechat')
+  async loginByWechat(@Body() body: { code: string; channel?: string }) {
+    try {
+      // code 换 openid：小程序 channel=mp（jscode2session），App channel=app（sns/oauth2）
+      const session = await wechatProvider.codeToSession(
+        body.code,
+        body.channel === 'app' ? 'app' : 'mp'
+      )
+      const openId = session.openid
+
+      let oauthInfo = await userService.queryByOauth(openId)
+      const nowDate = Date.now()
+      const resultData: Record<string, unknown> = {
+        name: '微信用户',
+        createTime: nowDate,
+        updateTime: nowDate,
+        level: 1,
+        status: 'active',
+        smsLoginEnabled: true,
+        oauthLoginEnabled: true
+      }
+
+      if (!oauthInfo) {
+        const registered = await userService.registerByOauth(
+          resultData,
+          'wechat',
+          openId
+        )
+        if (!registered) {
+          throw new Error('oauth注册失败')
+        }
+        resultData.id = registered.userId
+      } else {
+        const boundUserId = Number(
+          (oauthInfo as { userId?: number; user_id?: number }).userId ??
+            (oauthInfo as { user_id?: number }).user_id
+        )
+        const existing = await this.usersService.queryUserInfo(boundUserId)
+        if (!existing) throw new Error('账号不存在')
+        await this.usersService.assertAccountActive(existing)
+        if (existing.oauthLoginEnabled === false) {
+          throw new Error('未开启第三方快捷登录')
+        }
+        resultData.id = boundUserId
+        Object.assign(resultData, {
+          name: existing.name || '微信用户',
+          avatar: existing.avatar || '',
+          phone: existing.phone
+        })
+      }
+
+      userService.setToken(resultData as never)
+      delete resultData.password
+      return { status: true, msg: '登录成功', data: resultData }
     } catch (error) {
       return {
         status: false,
