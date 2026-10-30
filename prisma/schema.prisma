@@ -1728,13 +1728,16 @@ model StarWishLike {
 
 /// 星聚档案表（client_key 维度星光本位；新账号诚实 0 值）
 model PartyProfile {
-  id        String   @id @db.VarChar(32)
-  clientKey String   @unique @map("client_key") @db.VarChar(64)
-  name      String   @db.VarChar(32)
-  avatarUrl String   @default("") @map("avatar_url") @db.VarChar(255)
-  starVal   Int      @default(0) @map("star_val")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  id             String    @id @db.VarChar(32)
+  clientKey      String    @unique @map("client_key") @db.VarChar(64)
+  name           String    @db.VarChar(32)
+  avatarUrl      String    @default("") @map("avatar_url") @db.VarChar(255)
+  phone          String    @default("") @db.VarChar(20)
+  phoneVerified  Boolean   @default(false) @map("phone_verified")
+  phoneUpdatedAt DateTime? @map("phone_updated_at")
+  starVal        Int       @default(0) @map("star_val")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
 
   @@map("party_profile")
 }
