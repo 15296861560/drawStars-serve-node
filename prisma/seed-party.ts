@@ -7,10 +7,12 @@
  * - party_session / party_session_player：1 场 CLOSED（历史趣局）+ 1 场 WAITING（大厅快照）
  * - party_card：CLOSED 会话的纪念卡（mockCard 同形库卡）
  * - party_badge：12 枚徽章运营位入库
- * - party_question / party_wordbank：占位迁移示意数据（运行时仍取 data/*.js）
+ * - party_question：默认真心话大冒险题库全量入库（复用 data/tod.js 单一数据源）
+ * - party_wordbank：占位迁移示意数据（运行时仍取 data/*.js）
  * Run: npm run prisma:seed-party
  */
 import { PrismaClient } from '@prisma/client'
+import todPools from '../src/nest/modules/party/data/tod.js'
 
 const prisma = new PrismaClient()
 
@@ -195,12 +197,56 @@ const BADGES = [
   { key: 'star_messenger', emoji: '💌', label: '拾星信使', condition: '纪念卡分享 10 次' },
 ]
 
-/* ---------- 7. 题库 / 词库占位迁移示意（运行时仍由 data/*.js 供题） ---------- */
-const QUESTIONS = [
-  { id: 'seed_q_001', gameType: 'tod', kind: 'truth', level: 'gentle', themes: ['青春'], text: '最近一次让你笑出声的事是什么？' },
-  { id: 'seed_q_002', gameType: 'tod', kind: 'dare', level: 'gentle', themes: ['深夜'], text: '模仿一种动物的叫声，让大家猜。' },
-  { id: 'seed_q_003', gameType: 'tod', kind: 'truth', level: 'standard', themes: ['遗憾'], text: '讲一个你到现在都没告诉室友的小秘密。' },
-]
+/* ---------- 7. 题库：默认真心话大冒险全量入库 ---------- */
+/** 旧版 3 条占位题（题面与正式题库重复）：seed 时清掉，避免库里出现重复题 */
+const LEGACY_QUESTION_IDS = ['seed_q_001', 'seed_q_002', 'seed_q_003']
+
+type TodPool = { truth: string[]; dare: string[] }
+const LEVEL_POOLS = (todPools as { LEVEL_POOLS: Record<string, TodPool> }).LEVEL_POOLS
+const THEME_POOLS = (todPools as { THEME_POOLS: Record<string, TodPool> }).THEME_POOLS
+
+/**
+ * 生成 tod 题库行：
+ * - 玩法 A（分级池）：level 取 gentle/standard/starry，themes 留空 = 不限主题
+ * - 玩法 B（主题池）：themes 带中文主题名，level 统一 standard
+ * id 走固定序号（seed_q_tod_001…），保证 seed 可重复执行且不产生重复行
+ */
+function buildTodQuestions() {
+  const rows: {
+    id: string
+    gameType: string
+    kind: string
+    level: string
+    themes: string[]
+    text: string
+  }[] = []
+  let seq = 1
+  const nextId = () => 'seed_q_tod_' + String(seq++).padStart(3, '0')
+  const LEVEL_KEYS = ['gentle', 'standard', 'starry']
+  const KIND_KEYS = ['truth', 'dare']
+
+  for (const level of LEVEL_KEYS) {
+    const pool = LEVEL_POOLS[level]
+    if (!pool) continue
+    for (const kind of KIND_KEYS) {
+      for (const text of pool[kind] || []) {
+        rows.push({ id: nextId(), gameType: 'tod', kind, level, themes: [], text })
+      }
+    }
+  }
+  for (const theme of Object.keys(THEME_POOLS)) {
+    const pool = THEME_POOLS[theme]
+    if (!pool) continue
+    for (const kind of KIND_KEYS) {
+      for (const text of pool[kind] || []) {
+        rows.push({ id: nextId(), gameType: 'tod', kind, level: 'standard', themes: [theme], text })
+      }
+    }
+  }
+  return rows
+}
+
+const QUESTIONS = buildTodQuestions()
 
 const WORDBANK = [
   { id: 'seed_wb_001', level: 'easy', theme: '生活日常', word: '牙刷' },
@@ -303,11 +349,14 @@ async function main() {
   }
   console.log('[seed-party] party_badge x', BADGES.length)
 
+  // 清掉旧占位题（题面已被正式题库覆盖），再按固定 id 幂等 upsert
+  await prisma.partyQuestion.deleteMany({ where: { id: { in: LEGACY_QUESTION_IDS } } })
   for (const q of QUESTIONS) {
     await prisma.partyQuestion.upsert({
       where: { id: q.id },
-      create: { ...q, themes: q.themes },
-      update: { text: q.text },
+      create: { id: q.id, gameType: q.gameType, kind: q.kind, level: q.level, themes: q.themes, text: q.text },
+      // 只同步题面与分类；status 留给运营后台（已下架的题不因重跑 seed 被置回 online）
+      update: { gameType: q.gameType, kind: q.kind, level: q.level, themes: q.themes, text: q.text },
     })
   }
   for (const w of WORDBANK) {
