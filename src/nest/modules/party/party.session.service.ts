@@ -85,6 +85,11 @@ export class PartySessionService {
       penalty: { mode: 'text', text: session.penaltyText },
       penaltyMode: session.penaltyMode,
       joker: !!session.joker,
+      // 房间点位：小程序入房侧校验距离用；开局未上报定位则为 null
+      location:
+        session.latitude != null && session.longitude != null
+          ? { latitude: session.latitude, longitude: session.longitude }
+          : null,
       mode: 'online',
       players: sorted.map(p => this.renderPlayer(p, viewerKey)),
     }
@@ -103,6 +108,39 @@ export class PartySessionService {
     const session = await this.findSession(id)
     if (!session) return {}
     return this.renderSession(session, await this.playersOf(id), viewerKey)
+  }
+
+  /* ---------- 房间点位 ---------- */
+  /** 经纬合法性一票判：非数值 / 越界一律视为没有点位 */
+  private toLocation(latitude: unknown, longitude: unknown): { latitude: number; longitude: number } | null {
+    const lat = Number(latitude)
+    const lng = Number(longitude)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+    return { latitude: lat, longitude: lng }
+  }
+
+  /** 兼容嵌套 location 与平铺两种入参形态（小程序开局发 payload.location） */
+  private parseLocationBody(src: Record<string, any>): { latitude: number; longitude: number } | null {
+    if (src && src.location && typeof src.location === 'object') {
+      const nested = this.toLocation(src.location.latitude, src.location.longitude)
+      if (nested) return nested
+    }
+    return this.toLocation(src && src.latitude, src && src.longitude)
+  }
+
+  /** 球面距离（米）：附近查找的半径判准 */
+  private distanceMeters(
+    from: { latitude: number; longitude: number },
+    to: { latitude: number; longitude: number }
+  ): number {
+    const rad = Math.PI / 180
+    const dLat = (to.latitude - from.latitude) * rad
+    const dLng = (to.longitude - from.longitude) * rad
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(from.latitude * rad) * Math.cos(to.latitude * rad) * Math.sin(dLng / 2) ** 2
+    return 6371000 * 2 * Math.asin(Math.sqrt(h))
   }
 
   /* ---------- WS 广播 ---------- */
@@ -152,6 +190,8 @@ export class PartySessionService {
       gameType === 'tod'
         ? parseBodyList(src.themeTags).filter(t => TOD_THEMES.indexOf(t) >= 0)
         : []
+    // 开局点位：小程序静默上报 location（拒绝授权则不带，房间不参与附近查找也无妨）
+    const location = this.parseLocationBody(src)
 
     let code = randomCode(6)
     for (let i = 0; i < 8; i++) {
@@ -174,6 +214,7 @@ export class PartySessionService {
         penaltyText,
         joker,
         status: 'WAITING',
+        ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}),
       },
     })
 
@@ -356,6 +397,62 @@ export class PartySessionService {
         .filter(r => r.session)
         .map(r => buildHistoryRow(r.session, r.session.players)),
     }
+  }
+
+  /* ---------- 9. 附近房间（加入页查身边 50 米免口令入座）---------- */
+  async nearby(query: Record<string, any>, viewerKey: string) {
+    const me = this.toLocation(query && query.latitude, query && query.longitude)
+    // 缺/坏定位：形内拒绝（恒 200 裸回包），小程序按「查不到」渲染，不误判离线
+    if (!me) return { list: [] }
+    const radius = clampInt(query && query.radius, 10, 1000, 50)
+
+    // 趣局是短生命场次：只扫近 24h 带点位的未落幕局，避免历史局全表扫
+    const candidates = await this.prisma.client.partySession.findMany({
+      where: {
+        status: { in: ['WAITING', 'PLAYING'] },
+        latitude: { not: null },
+        createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) },
+      },
+      take: 200,
+      orderBy: { createdAt: 'desc' },
+    })
+
+    const withDistance = candidates
+      .map(session => ({
+        session,
+        distanceM: Math.max(
+          1,
+          Math.round(
+            this.distanceMeters(me, {
+              latitude: session.latitude as number,
+              longitude: session.longitude as number,
+            })
+          )
+        ),
+      }))
+      .filter(x => x.distanceM <= radius)
+      .sort((a, b) => a.distanceM - b.distanceM)
+    if (!withDistance.length) return { list: [] }
+
+    // 批取席位：满员局免口令也进不去，直接从列表剔除
+    const players = await this.prisma.client.partySessionPlayer.findMany({
+      where: { sessionId: { in: withDistance.map(x => x.session.id) } },
+    })
+    const bySession = new Map<string, PartySessionPlayer[]>()
+    for (const p of players) {
+      const seats = bySession.get(p.sessionId) || []
+      seats.push(p)
+      bySession.set(p.sessionId, seats)
+    }
+
+    const list = withDistance
+      .filter(x => (bySession.get(x.session.id) || []).length < x.session.playerLimit)
+      .slice(0, 20)
+      .map(x => ({
+        ...this.renderSession(x.session, bySession.get(x.session.id) || [], viewerKey),
+        distanceM: x.distanceM,
+      }))
+    return { list }
   }
 
   /* ---------- 8. 纪念卡（三级兜底，绝不 4xx） ---------- */

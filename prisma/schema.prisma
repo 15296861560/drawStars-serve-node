@@ -1608,6 +1608,9 @@ model PartySession {
   penaltyText  String    @map("penalty_text") @db.VarChar(255) // 惩罚文案
   joker        Boolean   @default(false) @db.TinyInt // lady 54 张模式
   status       String    @db.VarChar(16) // WAITING/PLAYING/SETTLING/CLOSED
+  // 房间点位（PRD 4.2 附近查找）：开局时静默上报，拒绝定位授权则为 null（不参与附近查找）
+  latitude     Float?
+  longitude    Float?
   createdAt    DateTime  @default(now()) @map("created_at")
   startedAt    DateTime? @map("started_at")
   closedAt     DateTime? @map("closed_at")

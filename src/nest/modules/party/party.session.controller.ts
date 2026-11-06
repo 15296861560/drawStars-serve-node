@@ -1,9 +1,9 @@
 /**
- * 趣局会话控制器（端点 #1-#8）
+ * 趣局会话控制器（端点 #1-#8 + nearby）
  * - @Public + @RawResponse 类级：免鉴权 + 200 裸回包
- * - 声明顺序严格按契约（sessions/mine 需先于 sessions/:id）
+ * - 声明顺序严格按契约（sessions/mine、sessions/nearby 需先于 sessions/:id）
  */
-import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common'
 import { Public } from '../../common/decorators/public.decorator'
 import { RawResponse } from '../../common/decorators/raw-response.decorator'
 import { PartySessionService } from './party.session.service'
@@ -23,6 +23,12 @@ export class PartySessionController {
   @Get('sessions/mine')
   async mine(@Req() request: PartyRequestLike) {
     return this.sessionService.mine(resolveClientKey(request))
+  }
+
+  /** 加入页免口令入口：latitude / longitude / radius 查身边亮着的房（默认 50 米） */
+  @Get('sessions/nearby')
+  async nearby(@Query() query: Record<string, unknown>, @Req() request: PartyRequestLike) {
+    return this.sessionService.nearby(query, resolveClientKey(request))
   }
 
   @Get('sessions/code/:code')
