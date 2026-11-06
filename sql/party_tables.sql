@@ -8,6 +8,7 @@
 --   * status 对齐小程序大写形态: WAITING/PLAYING/SETTLING/CLOSED
 --   * client_key: 正式 = TOKEN_VERIFY 的 uid; demo = 请求来源 IP
 --   * 结算在客户端本地完成、不上传，服务端仅做会话状态机与惰性清扫
+--     （例外：任务中心的每日任务奖励由服务端入账，流水落 party_star_trans）
 --   * 题面/词面/徽章文案/星愿墙种子由服务端代码内嵌
 --     (src/nest/modules/party/data/*.js) 提供，本脚本只建表不插种子
 -- ============================================
@@ -143,3 +144,31 @@ CREATE TABLE IF NOT EXISTS `party_badge` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_key` (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='徽章种子表（占位，现由data/constants.js推导下发）';
+
+CREATE TABLE IF NOT EXISTS `party_task_progress` (
+  `id` VARCHAR(32) NOT NULL COMMENT '进度ID（ULID）',
+  `client_key` VARCHAR(64) NOT NULL COMMENT '身份键：uid或内网IP（demo）',
+  `day` VARCHAR(8) NOT NULL COMMENT '日键 YYYYMMDD（每日 0 点自然重置，不刷历史行）',
+  `task_key` VARCHAR(32) NOT NULL COMMENT '任务键 open_game/star_visit/like_wish/finish_game',
+  `progress` INT NOT NULL DEFAULT 0 COMMENT '当日进度（封顶任务 target）',
+  `claimed` TINYINT NOT NULL DEFAULT 0 COMMENT '当日奖励已领取 0/1',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_client_day_task` (`client_key`, `day`, `task_key`),
+  KEY `idx_day` (`day`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日任务进度表（任务中心：客户端bump上报，claim服务端入账）';
+
+CREATE TABLE IF NOT EXISTS `party_star_trans` (
+  `id` VARCHAR(32) NOT NULL COMMENT '流水ID（ULID）',
+  `client_key` VARCHAR(64) NOT NULL COMMENT '身份键：uid或内网IP（demo）',
+  `amount` INT NOT NULL COMMENT '入账星数',
+  `balance_after` INT NOT NULL COMMENT '入账后余额快照',
+  `source` VARCHAR(32) NOT NULL COMMENT '来源 task / 预留 settle',
+  `day` VARCHAR(8) NOT NULL COMMENT '日键 YYYYMMDD',
+  `remark` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '备注（如 task_key）',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '入账时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_client_key` (`client_key`),
+  KEY `idx_day` (`day`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='星光流水表（服务端入账留痕，对账/后续接PointsService）';

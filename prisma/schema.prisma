@@ -1745,6 +1745,38 @@ model PartyProfile {
   @@map("party_profile")
 }
 
+/// 每日任务进度表（任务中心端点 #19-#21）：客户端真实行为 bump 上报，claim 由服务端入账
+model PartyTaskProgress {
+  id        String   @id @db.VarChar(32) // ULID
+  clientKey String   @map("client_key") @db.VarChar(64)
+  day       String   @db.VarChar(8) // 日键 YYYYMMDD（与 star_wish.update_key 同口径）
+  taskKey   String   @map("task_key") @db.VarChar(32) // open_game/star_visit/like_wish/finish_game
+  progress  Int      @default(0)
+  claimed   Boolean  @default(false) @db.TinyInt // 当日奖励已领取
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([clientKey, day, taskKey], map: "uk_client_day_task")
+  @@index([day], map: "idx_day")
+  @@map("party_task_progress")
+}
+
+/// 星光流水表：服务端入账留痕（任务奖励等），对账与后续接 PointsService 的数据源（PRD 4.10）
+model PartyStarTrans {
+  id           String   @id @db.VarChar(32) // ULID
+  clientKey    String   @map("client_key") @db.VarChar(64)
+  amount       Int // 入账星数
+  balanceAfter Int      @map("balance_after") // 入账后余额快照
+  source       String   @db.VarChar(32) // 来源：task / 预留 settle
+  day          String   @db.VarChar(8) // 日键 YYYYMMDD
+  remark       String   @default("") @db.VarChar(255) // 备注（如 task_key）
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([clientKey], map: "idx_client_key")
+  @@index([day], map: "idx_day")
+  @@map("party_star_trans")
+}
+
 /// 徽章种子表（占位：现由 party/data/constants.js 推导下发，预留后台运营位）
 model PartyBadge {
   id        String   @id @db.VarChar(32)
