@@ -25,12 +25,25 @@ export function clampInt(v: unknown, min: number, max: number, fallback: number)
 export const LEVEL_KEYS: string[] = LEVELS.map((l: { key: string }) => l.key)
 
 /* ---------- clientKey ----------
- * schema.prisma 约定：client_key 正式 = TOKEN_VERIFY 解出的 uid；demo = 请求来源 IP
+ * schema.prisma 约定：client_key 正式 = TOKEN_VERIFY 解出的 uid（tk_<uid>）；
+ * 设备键（dk_<key>）= 小程序首启生成并持久化的本机 uuid，经 x-ds-device-key 头携带，
+ *   作为 token 不可用时的稳定游客身份——星光/任务/对局挂在同一键上，不再随 code/IP 变化丢失；
+ * IP 兜底（ip_<normalized>）仅剩无设备键的老客户端才会落此键。
+ * 解析优先级：tk_ > dk_ > ip_
  */
 export interface PartyRequestLike {
   auth?: { uid?: unknown; userId?: unknown; sub?: unknown } | null
   ip?: string | null
   socket?: { remoteAddress?: string | null } | null
+  headers?: Record<string, unknown> | null
+}
+
+/** 解析设备键头：x-ds-device-key 归一为 [a-z0-9]{8,48} 后加 dk_ 前缀（client_key 列 VARCHAR(64) 须预留前缀位）；不合规返回空串 */
+export function resolveDeviceKey(headers: Record<string, unknown> | null | undefined): string {
+  const raw = headers ? headers['x-ds-device-key'] : null
+  const key = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+  if (!/^[a-z0-9]{8,48}$/.test(key)) return ''
+  return 'dk_' + key
 }
 
 function authUidKey(auth: PartyRequestLike['auth']): string {
@@ -49,6 +62,8 @@ export function normalizeIp(ip?: string | null): string {
 export function resolveClientKey(request: PartyRequestLike): string {
   const tk = authUidKey(request.auth)
   if (tk) return tk
+  const dk = resolveDeviceKey(request.headers)
+  if (dk) return dk
   const ip = request.ip || (request.socket && request.socket.remoteAddress) || ''
   return 'ip_' + normalizeIp(ip)
 }
@@ -68,6 +83,8 @@ export function resolveClientKeyFromHeaders(
     const tk = payload ? authUidKey(payload as PartyRequestLike['auth']) : ''
     if (tk) return tk
   }
+  const dk = resolveDeviceKey(headers)
+  if (dk) return dk
   // 反向代理链路下与 REST 侧 viewerKey 同源取 XFF 首跳；直连场景无该头走 remoteAddress
   const xffRaw = headers['x-forwarded-for']
   const xffFirst = (

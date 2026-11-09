@@ -21,8 +21,13 @@ export class PartyRankService {
 
   /* ---------- GET /rank/board（端点 #22）：星光总榜 + 我的坐标 ---------- */
   async board(clientKey: string) {
-    const me = await this.profileService.ensureProfile(clientKey)
+    // 读路径不建档：无档案的键用瞬态「我」补位，不再向库里刷幽灵行
+    const me =
+      (await this.profileService.readProfile(clientKey)) ||
+      ({ name: '星河旅人', starVal: 0 } as { name: string; starVal: number })
+    // 只展示攒下星光的档案：默认名 0 星的幽灵行不再进榜（存量脏行同时被口径过滤掉）
     const rows = await this.prisma.client.partyProfile.findMany({
+      where: { starVal: { gt: 0 } },
       orderBy: [{ starVal: 'desc' }, { updatedAt: 'asc' }],
       take: BOARD_SIZE,
       select: { clientKey: true, name: true, starVal: true },

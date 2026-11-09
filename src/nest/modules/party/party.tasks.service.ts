@@ -44,7 +44,10 @@ export class PartyTasksService {
 
   /* ---------- GET /tasks（端点 #19）：当日任务清单 + 我的星光 ---------- */
   async list(clientKey: string) {
-    const profile = await this.profileService.ensureProfile(clientKey)
+    // 读路径不建档：无档案回落 0 星瞬态，浏览任务中心不再向库里刷幽灵行
+    const profile =
+      (await this.profileService.readProfile(clientKey)) ||
+      ({ name: '星河旅人', starVal: 0 } as { name: string; starVal: number })
     const day = dayKey()
     const rows = await this.prisma.client.partyTaskProgress.findMany({
       where: { clientKey, day },

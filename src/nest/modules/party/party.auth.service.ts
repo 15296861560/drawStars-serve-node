@@ -28,7 +28,8 @@ function oauthUserId(oauth: unknown): number {
 export class PartyAuthService {
   constructor(private readonly profileService: PartyProfileService) {}
 
-  async login(body: { code?: unknown }) {
+  /** deviceKey：客户端 x-ds-device-key 解出的 dk_<key> 设备键（游客期数据挂载键），缺省为空串 */
+  async login(body: { code?: unknown }, deviceKey: string) {
     const code = String((body && body.code) || '').trim()
     if (!code) throw new BadRequestException('缺少 wx.login code')
 
@@ -76,6 +77,16 @@ export class PartyAuthService {
 
     // 派生 party 档案：clientKey 与 AuthGuard 解析口径一致（party.util authUidKey）
     const profile = await this.profileService.ensureProfile('tk_' + uid)
+
+    // 游客期数据并入正式身份（dk_<key> 名下星光/任务/对局/星愿 → tk_<uid>）；
+    // 迁移失败不阻断登录：数据留在 dk 下，下次登录再并
+    if (deviceKey) {
+      try {
+        await this.profileService.absorbDeviceIdentity(deviceKey, 'tk_' + uid)
+      } catch (e) {
+        console.warn('[party] absorbDeviceIdentity skipped:', e)
+      }
+    }
 
     return {
       token,
