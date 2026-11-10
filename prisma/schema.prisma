@@ -1840,3 +1840,124 @@ model PartyReport {
   @@index([targetType, targetId], map: "idx_target")
   @@map("party_report")
 }
+
+/// 心智测评-公众号能力配置（单行表，id=1）
+model AssessmentOaConfig {
+  id                BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  officialName      String   @map("official_name") @db.VarChar(64)
+  wechatId          String?  @map("wechat_id") @db.VarChar(64)
+  /// 0=个人未认证订阅号 1=认证订阅号 2=认证服务号
+  accountType       Int      @default(0) @map("account_type") @db.TinyInt
+  qrCodeUrl         String?  @map("qr_code_url") @db.VarChar(255)
+  /// 引导位总开关 1=开 0=关
+  guideEnabled      Int      @default(1) @map("guide_enabled") @db.TinyInt
+  resultGuideTitle  String?  @map("result_guide_title") @db.VarChar(64)
+  resultGuideDesc   String?  @map("result_guide_desc") @db.VarChar(128)
+  completeGuideTitle String? @map("complete_guide_title") @db.VarChar(64)
+  completeGuideDesc String?  @map("complete_guide_desc") @db.VarChar(128)
+  posterShareText   String?  @map("poster_share_text") @db.VarChar(255)
+  plazaPath         String?  @map("plaza_path") @db.VarChar(128)
+  updatedBy         BigInt?  @map("updated_by") @db.UnsignedBigInt
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("assessment_oa_config")
+}
+
+/// 心智测评-回复规则仓库
+model AssessmentReplyRule {
+  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  /// keyword=关键词回复 welcome=关注回复
+  ruleType      String   @map("rule_type") @db.VarChar(16)
+  keywords      String?  @db.VarChar(255)
+  replyContent  String?  @map("reply_content") @db.Text
+  channelSource String?  @map("channel_source") @db.VarChar(16)
+  refId         String?  @map("ref_id") @db.VarChar(32)
+  linkUrl       String?  @map("link_url") @db.VarChar(255)
+  status        Int      @default(1) @db.TinyInt
+  /// pending=待手工同步 synced=已同步公众号
+  syncStatus    String   @default("pending") @map("sync_status") @db.VarChar(16)
+  sort          Int      @default(0)
+  remark        String?  @db.VarChar(255)
+  creatorId     BigInt?  @map("creator_id") @db.UnsignedBigInt
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([ruleType, status, sort], map: "idx_rule_type")
+  @@map("assessment_reply_rule")
+}
+
+/// 心智测评-渠道入口投放
+model AssessmentChannel {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name       String    @db.VarChar(64)
+  source     String    @db.VarChar(16)
+  refId      String    @map("ref_id") @db.VarChar(32)
+  /// fill=测评直达 plaza=问星广场
+  targetType String    @default("fill") @map("target_type") @db.VarChar(16)
+  surveyId   BigInt?   @map("survey_id") @db.UnsignedBigInt
+  shareCode  String?   @map("share_code") @db.VarChar(32)
+  infoId     BigInt?   @map("info_id") @db.UnsignedBigInt
+  status     Int       @default(1) @db.TinyInt
+  startAt    DateTime? @map("start_at")
+  endAt      DateTime? @map("end_at")
+  remark     String?   @db.VarChar(255)
+  creatorId  BigInt?   @map("creator_id") @db.UnsignedBigInt
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([source, refId], map: "uniq_source_ref")
+  @@index([surveyId], map: "idx_survey")
+  @@map("assessment_channel")
+}
+
+/// 心智测评-测评上架登记
+model AssessmentInfo {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title        String    @db.VarChar(64)
+  typeKey      String    @map("type_key") @db.VarChar(32)
+  surveyId     BigInt    @map("survey_id") @db.UnsignedBigInt
+  coverUrl     String?   @map("cover_url") @db.VarChar(255)
+  subtitle     String?   @db.VarChar(128)
+  tags         String?   @db.VarChar(255)
+  questionNum  Int       @default(0) @map("question_num")
+  durationDesc String?   @map("duration_desc") @db.VarChar(32)
+  sort         Int       @default(0)
+  /// 0=草稿 1=已上架 2=已下架
+  status       Int       @default(0) @db.TinyInt
+  publishedAt  DateTime? @map("published_at")
+  creatorId    BigInt?   @map("creator_id") @db.UnsignedBigInt
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([status, sort], map: "idx_status_sort")
+  @@index([surveyId], map: "idx_survey")
+  @@index([typeKey], map: "idx_type")
+  @@map("assessment_info")
+}
+
+/// 心智测评-埋点事件中心
+model AssessmentEvent {
+  id               BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  eventType        String   @map("event_type") @db.VarChar(32)
+  userId           BigInt?  @map("user_id") @db.UnsignedBigInt
+  sessionId        String   @map("session_id") @db.VarChar(64)
+  source           String?  @db.VarChar(16)
+  refId            String?  @map("ref_id") @db.VarChar(32)
+  target           String?  @db.VarChar(16)
+  position         String?  @db.VarChar(32)
+  surveyId         BigInt?  @map("survey_id") @db.UnsignedBigInt
+  surveyResponseId BigInt?  @map("survey_response_id") @db.UnsignedBigInt
+  isNewUser        Int      @default(0) @map("is_new_user") @db.TinyInt
+  userAgent        String?  @map("user_agent") @db.VarChar(255)
+  ipCity           String?  @map("ip_city") @db.VarChar(32)
+  createdDay       DateTime @map("created_day") @db.Date
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([eventType, createdDay], map: "idx_type_day")
+  @@index([sessionId], map: "idx_session")
+  @@index([source, refId, createdDay], map: "idx_source_ref")
+  @@index([userId], map: "idx_user")
+  @@index([surveyId], map: "idx_survey")
+  @@map("assessment_event")
+}

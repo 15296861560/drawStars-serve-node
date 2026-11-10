@@ -3,6 +3,7 @@ import { Public } from '../../common/decorators/public.decorator'
 import { RawResponse } from '../../common/decorators/raw-response.decorator'
 import { AuthService } from './auth.service'
 import { UsersService } from '../users/users.service'
+import { AssessmentService } from '../assessment/assessment.service'
 import userService from '../../../public/service/userService'
 import githubProvider from '../../../public/provider/oauth/githubProvider'
 import wechatProvider from '../../../public/provider/oauth/wechatProvider'
@@ -13,8 +14,27 @@ import config from '../../../config/publish-config'
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly usersService: UsersService
+    private readonly usersService: UsersService,
+    private readonly assessmentService: AssessmentService
   ) {}
+
+  /**
+   * 游客快捷注册（心智测评 5.6.2）
+   * 注册成功即发放新人礼；同时迁移游客答卷并补发测评积分。
+   */
+  @Post('quickRegister')
+  async quickRegister(@Body() body: Record<string, unknown>) {
+    try {
+      const data = await this.assessmentService.quickRegister(body)
+      return { status: true, msg: '注册成功', data }
+    } catch (error) {
+      return {
+        status: false,
+        msg: error instanceof Error ? error.message : String(error),
+        data: null
+      }
+    }
+  }
 
   @Post('loginByPassword')
   async loginByPassword(

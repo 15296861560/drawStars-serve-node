@@ -20,6 +20,7 @@ import { MobileModule } from './modules/mobile/mobile.module'
 import { ImModule } from './modules/im/im.module'
 import { WorkflowModule } from './modules/workflow/workflow.module'
 import { PartyModule } from './modules/party/party.module'
+import { AssessmentModule } from './modules/assessment/assessment.module'
 import { AuthGuard } from './common/guards/auth.guard'
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor'
 import { ResponseInterceptor } from './common/interceptors/response.interceptor'
@@ -48,7 +49,8 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
     MobileModule,
     ImModule,
     WorkflowModule,
-    PartyModule
+    PartyModule,
+    AssessmentModule
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
