@@ -1,5 +1,5 @@
 /**
- * 趣局会话控制器（端点 #1-#8 + nearby）
+ * 趣局会话控制器（端点 #1-#8 + nearby + settle-grant）
  * - @Public + @RawResponse 类级：免鉴权 + 200 裸回包
  * - 声明顺序严格按契约（sessions/mine、sessions/nearby 需先于 sessions/:id）
  */
@@ -59,5 +59,15 @@ export class PartySessionController {
   @Patch('sessions/:id/host')
   async hostAction(@Param('id') id: string, @Body() body: Record<string, unknown>, @Req() request: PartyRequestLike) {
     return this.sessionService.hostAction(id, body, resolveClientKey(request))
+  }
+
+  /** 结算星光入账（PRD 4.2 后段）：本局玩家提交按规则换算后的星光，服务端封顶 + 幂等入账 */
+  @Post('sessions/:id/settle-grant')
+  async settleGrant(
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+    @Req() request: PartyRequestLike
+  ) {
+    return this.sessionService.settleGrant(id, body, resolveClientKey(request))
   }
 }

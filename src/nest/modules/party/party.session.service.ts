@@ -20,6 +20,7 @@ import {
   channelOf,
   clampInt,
   dailyWishText,
+  dayKey,
   fmtDate,
   genId,
   parseBodyList,
@@ -28,6 +29,10 @@ import {
 } from './party.util'
 
 const GAME_KEYS = Object.keys(GAME_MAP as Record<string, unknown>)
+
+/** 结算入账双封顶（PRD 4.2 L229，与小程序 settle.js 同口径）：单场 ≤60、单玩家每日 ≤100 */
+const SETTLE_CAP_PER_GAME = 60
+const SETTLE_CAP_PER_DAY = 100
 
 @Injectable()
 export class PartySessionService {
@@ -532,5 +537,64 @@ export class PartySessionService {
       if (players.length) return this.buildCard(session, players)
     }
     return this.emptyCard(id)
+  }
+
+  /* ---------- 12. 结算星光入账（PRD 4.2 结算聚合后段接入）----------
+   * 贡献分 / MVP 由客户端在局内实时记分（服务端无逐轮账），提交的是按 4.2 换算
+   * （1 贡献分 = 5 星光、MVP +10 并列均分）后的单场星光；服务端只做安全边界：
+   * 非本局玩家拒绝、未开局拒绝、单场 60 / 每日 100 双封顶、settle 流水按
+   * (clientKey, sessionId) 幂等防重复入账 —— 结算页重进 / 重复提交都只入一次
+   */
+  async settleGrant(id: string, body: Record<string, unknown>, viewerKey: string) {
+    const session = await this.findSession(id)
+    if (!session) return { ok: false, msg: '场次不存在' }
+    if (!session.startedAt) return { ok: false, msg: '对局尚未开始，无法结算入账' }
+    const seat = await this.prisma.client.partySessionPlayer.findUnique({
+      where: { sessionId_clientKey: { sessionId: id, clientKey: viewerKey } },
+    })
+    if (!seat) return { ok: false, msg: '不在本局玩家名单内' }
+
+    const day = dayKey()
+    // 结算入账是写路径：按需建档（与读路径不建档口径互补）
+    await this.profileService.ensureProfile(viewerKey)
+    const res = await this.prisma.client.$transaction(async (tx) => {
+      // 幂等：同局同人已有 settle 流水（remark = sessionId）→ 回显余额，不再入账
+      const dup = await tx.partyStarTrans.findFirst({
+        where: { clientKey: viewerKey, source: 'settle', remark: id },
+      })
+      const readBalance = async () => {
+        const profile = await tx.partyProfile.findUnique({ where: { clientKey: viewerKey } })
+        return profile ? profile.starVal : 0
+      }
+      if (dup) return { duplicate: true, starGain: 0, starVal: await readBalance() }
+
+      // 每日封顶：当日 settle 流水合计 + 本次 ≤ 100，超出部分不再入账
+      const today = await tx.partyStarTrans.findMany({
+        where: { clientKey: viewerKey, source: 'settle', day },
+        select: { amount: true },
+      })
+      const used = today.reduce((sum, r) => sum + r.amount, 0)
+      const asked = clampInt(body && body.starGain, 0, SETTLE_CAP_PER_GAME, 0)
+      const eff = Math.max(0, Math.min(asked, SETTLE_CAP_PER_DAY - used))
+      if (eff <= 0) return { duplicate: false, starGain: 0, starVal: await readBalance(), dailyCapped: true }
+
+      const updated = await tx.partyProfile.update({
+        where: { clientKey: viewerKey },
+        data: { starVal: { increment: eff } },
+      })
+      await tx.partyStarTrans.create({
+        data: {
+          id: genId(),
+          clientKey: viewerKey,
+          amount: eff,
+          balanceAfter: updated.starVal,
+          source: 'settle', // 对局结算（PRD 4.2）——与任务领取 source='task' 并列的入账通道
+          day,
+          remark: id, // sessionId：幂等锚点，同局同人只入一次
+        },
+      })
+      return { duplicate: false, starGain: eff, starVal: updated.starVal, dailyCapped: eff < asked }
+    })
+    return { ok: true, ...res }
   }
 }

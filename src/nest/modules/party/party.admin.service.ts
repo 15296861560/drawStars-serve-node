@@ -16,7 +16,7 @@ const KIND_KEYS = ['truth', 'dare']
 const QUESTION_STATUS = ['online', 'offline', 'pending_review']
 const REPORT_STATUS = ['pending', 'reviewing', 'closed']
 
-/** 段位分桶（PRD 4.9 表；星光值发放量依赖 points 流水，后续接 PointsService） */
+/** 段位分桶（PRD 4.9 表；星光值发放量取 party_star_trans 流水合计） */
 const RANK_BUCKETS = [
   { key: 'newcomer', label: '拾星新人', min: 0, max: 99 },
   { key: 'envoy', label: '星光使者', min: 100, max: 499 },
@@ -468,7 +468,7 @@ export class PartyAdminService {
     })
   }
 
-  /* ---------- 数据统计（PRD 4.10 口径；星光值发放量待 PointsService 占位 0） ---------- */
+  /* ---------- 数据统计（PRD 4.10 口径；星光值发放量取 party_star_trans 流水合计） ---------- */
   private parseDate(v: unknown, fb: Date): Date {
     if (typeof v === 'string' && v.trim()) {
       const s = v.trim()
@@ -537,13 +537,19 @@ export class PartyAdminService {
       users: profiles.filter(p => p.starVal >= b.min && p.starVal <= b.max).length,
     }))
 
+    // 星光值发放量：窗口内 party_star_trans 入账流水合计（settle 结算 / task 任务全口径）
+    const grantAgg = await this.prisma.client.partyStarTrans.aggregate({
+      where: { createdAt: { gte: start, lt: end } },
+      _sum: { amount: true },
+    })
+
     return this.ok({
       range: { start, end },
       sessions: { total: played, waiting, finished, finishedRate: played ? +(finished / played).toFixed(4) : 0 },
       byGame,
       trend,
       activeUsers,
-      starValueGrant: 0, // 星光值发放量：待 PointsService 接线（PRD 4.10）
+      starValueGrant: grantAgg._sum.amount || 0,
       rankDist,
     })
   }

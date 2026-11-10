@@ -1,7 +1,8 @@
 /**
  * 星光排行榜服务（PRD 4.9 段位同源，端点 #22）
  * - 口径：累计星光总榜（party_profile.starVal 降序 top 30），与段位晋升同一数据源；
- *   结算星光暂不入服务端（PRD 4.2 后段接入），任务奖励等服务端入账项实时反映在榜上
+ *   结算星光经 POST sessions/:id/settle-grant 服务端入账（PRD 4.2 后段已接入），
+ *   与任务奖励等服务端入账项一并实时反映在榜上
  * - 形状对齐小程序 mock.mockRankBoard()：list 项为 { name, starVal, me }，me 由 clientKey 命中；
  *   「我」必在榜（不在 top 30 时补位并按星光重排），并列按 updated_at 升序稳定排（先到先得）
  */
