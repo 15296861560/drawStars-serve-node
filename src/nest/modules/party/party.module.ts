@@ -10,6 +10,8 @@ import { PartyAuthController } from './party.auth.controller'
 import { PartyAuthService } from './party.auth.service'
 import { PartyAdminController } from './party.admin.controller'
 import { PartyAdminService } from './party.admin.service'
+import { PartyContentController } from './party.content.controller'
+import { PartyContentService } from './party.content.service'
 import { PartyGamesController } from './party.games.controller'
 import { PartyGamesService } from './party.games.service'
 import { PartyGameService } from './games/party.game.service'
@@ -34,6 +36,7 @@ import { PartyWishService } from './party.wish.service'
     PartyTasksController,
     PartyRankController,
     PartyAdminController,
+    PartyContentController,
   ],
   providers: [
     PartyProfileService, // SessionService / PartyAuthService / Tasks / Rank 依赖（先声明）
@@ -44,6 +47,7 @@ import { PartyWishService } from './party.wish.service'
     PartyTasksService, // 任务中心（端点 #19-21：bump 记账 / claim 事务入账）
     PartyRankService, // 星光总榜（端点 #22）
     PartyAdminService,
+    PartyContentService, // UGC 治理：msgSecCheck + 举报
     PartyAuthService,
   ],
 })
