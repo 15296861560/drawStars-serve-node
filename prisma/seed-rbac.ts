@@ -498,6 +498,76 @@ const MENU_SEEDS: MenuSeed[] = [
     moduleCode: 'demo.hello',
     sort: 12
   },
+  // ===== 拾星趣局（party）管理 =====
+  {
+    key: 'manage_party',
+    parentKey: 'manage',
+    name: '拾星趣局',
+    type: 1,
+    path: '',
+    icon: 'Star',
+    sort: 11
+  },
+  {
+    key: 'manage_party_questions',
+    parentKey: 'manage_party',
+    name: '题目池',
+    type: 2,
+    path: '/home/manageHomePage/party/questions',
+    permission: 'party:question:manage',
+    icon: 'EditPen',
+    sort: 1
+  },
+  {
+    key: 'manage_party_themes',
+    parentKey: 'manage_party',
+    name: '主题标签',
+    type: 2,
+    path: '/home/manageHomePage/party/themes',
+    permission: 'party:theme:manage',
+    icon: 'Collection',
+    sort: 2
+  },
+  {
+    key: 'manage_party_games',
+    parentKey: 'manage_party',
+    name: '游戏配置',
+    type: 2,
+    path: '/home/manageHomePage/party/games',
+    permission: 'party:game:config',
+    icon: 'SetUp',
+    sort: 3
+  },
+  {
+    key: 'manage_party_sessions',
+    parentKey: 'manage_party',
+    name: '对局查询',
+    type: 2,
+    path: '/home/manageHomePage/party/sessions',
+    permission: 'party:session:view',
+    icon: 'Film',
+    sort: 4
+  },
+  {
+    key: 'manage_party_stats',
+    parentKey: 'manage_party',
+    name: '数据统计',
+    type: 2,
+    path: '/home/manageHomePage/party/stats',
+    permission: 'party:stats:view',
+    icon: 'TrendCharts',
+    sort: 5
+  },
+  {
+    key: 'manage_party_audit',
+    parentKey: 'manage_party',
+    name: '内容审核',
+    type: 2,
+    path: '/home/manageHomePage/party/audit',
+    permission: 'party:content:audit',
+    icon: 'Warning',
+    sort: 6
+  },
   {
     key: 'manage_logs',
     parentKey: 'manage',
@@ -1161,6 +1231,13 @@ const ROLE_SEEDS = [
       'workflow_btn_audit',
       'workflow_btn_execute',
       'workflow_btn_operate',
+      'manage_party',
+      'manage_party_questions',
+      'manage_party_themes',
+      'manage_party_games',
+      'manage_party_sessions',
+      'manage_party_stats',
+      'manage_party_audit',
       'manage_ai_assistant',
       'manage_ai_assistant_query',
       'manage_ai_assistant_voice',
