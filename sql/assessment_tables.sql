@@ -168,7 +168,7 @@ ON DUPLICATE KEY UPDATE
 --   ADD UNIQUE KEY uniq_assessment_ref (source, reference_type, reference_id);
 
 -- ============================================================
--- RBAC 权限码（seed-rbac 注入，实际列名以后端 rbac 表为准）
+-- RBAC 菜单种子（与前端 src/router/homePages/assessment.ts 一一对应，幂等可重放）
 -- 菜单可见性 5 码：
 --   assessment:oa:list       /home/assessment           公众号配置
 --   assessment:info:list     /home/assessment/list      测评上架管理
@@ -178,13 +178,69 @@ ON DUPLICATE KEY UPDATE
 -- 按钮级操作 4 码：
 --   assessment:oa:manage / assessment:info:manage /
 --   assessment:channel:manage / assessment:reply:manage
--- superior_admin 直通不受限；运营角色绑定上述权限码。
--- 示例（列名按后端 seed-rbac 实际调整后执行）：
--- INSERT INTO sys_menu (parent_id, name, type, path, permission, sort, visible, status)
--- VALUES
---   (0, '心智测评', 1, '/home/assessment', 'assessment:oa:list', 90, 1, 1),
---   (0, '测评上架管理', 1, '/home/assessment/list', 'assessment:info:list', 91, 1, 1),
---   (0, '渠道入口', 1, '/home/assessment/channel', 'assessment:channel:list', 92, 1, 1),
---   (0, '公众号回复规则', 1, '/home/assessment/reply', 'assessment:reply:list', 93, 1, 1),
---   (0, '数据看板', 1, '/home/assessment/stats', 'assessment:stats:view', 94, 1, 1);
+-- super_admin 代码直通不受限；admin（运营）角色由底部统一绑定；user/advanced 不绑。
 -- ============================================================
+-- 目录：心智测评中心（挂「管理中心」parent_id=2 下）
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT 2, '心智测评中心', 1, NULL, NULL, NULL, NULL, 'pc', 0, 11, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = 2 AND name = '心智测评中心') t);
+SET @asmt_dir = (SELECT id FROM sys_menu WHERE parent_id = 2 AND name = '心智测评中心' LIMIT 1);
+
+-- t2 页面 ×5
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT @asmt_dir, '公众号配置', 2, '/home/assessment', NULL, 'assessment:oa:list', NULL, 'pc', 0, 1, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = @asmt_dir AND name = '公众号配置') t);
+SET @asmt_oa = (SELECT id FROM sys_menu WHERE parent_id = @asmt_dir AND name = '公众号配置' LIMIT 1);
+
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT @asmt_dir, '测评上架管理', 2, '/home/assessment/list', NULL, 'assessment:info:list', NULL, 'pc', 0, 2, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = @asmt_dir AND name = '测评上架管理') t);
+SET @asmt_list = (SELECT id FROM sys_menu WHERE parent_id = @asmt_dir AND name = '测评上架管理' LIMIT 1);
+
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT @asmt_dir, '渠道入口', 2, '/home/assessment/channel', NULL, 'assessment:channel:list', NULL, 'pc', 0, 3, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = @asmt_dir AND name = '渠道入口') t);
+SET @asmt_channel = (SELECT id FROM sys_menu WHERE parent_id = @asmt_dir AND name = '渠道入口' LIMIT 1);
+
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT @asmt_dir, '公众号回复规则', 2, '/home/assessment/reply', NULL, 'assessment:reply:list', NULL, 'pc', 0, 4, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = @asmt_dir AND name = '公众号回复规则') t);
+SET @asmt_reply = (SELECT id FROM sys_menu WHERE parent_id = @asmt_dir AND name = '公众号回复规则' LIMIT 1);
+
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT @asmt_dir, '数据看板', 2, '/home/assessment/stats', NULL, 'assessment:stats:view', NULL, 'pc', 0, 5, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = @asmt_dir AND name = '数据看板') t);
+SET @asmt_stats = (SELECT id FROM sys_menu WHERE parent_id = @asmt_dir AND name = '数据看板' LIMIT 1);
+
+-- t3 按钮权限 ×4
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT @asmt_oa, '保存公众号配置', 3, NULL, NULL, 'assessment:oa:manage', NULL, 'pc', 0, 1, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = @asmt_oa AND name = '保存公众号配置') t);
+
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT @asmt_list, '上架/下架/编辑', 3, NULL, NULL, 'assessment:info:manage', NULL, 'pc', 0, 1, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = @asmt_list AND name = '上架/下架/编辑') t);
+
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT @asmt_channel, '渠道增删改', 3, NULL, NULL, 'assessment:channel:manage', NULL, 'pc', 0, 1, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = @asmt_channel AND name = '渠道增删改') t);
+
+INSERT INTO sys_menu (parent_id, name, type, path, component, permission, icon, client, is_tab, sort, visible, status)
+SELECT @asmt_reply, '回复规则增删改', 3, NULL, NULL, 'assessment:reply:manage', NULL, 'pc', 0, 1, 1, 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM sys_menu WHERE parent_id = @asmt_reply AND name = '回复规则增删改') t);
+
+-- 绑定 admin（运营）角色：目录 1 + 页面 5 + 按钮 4，共 10 条（与实际库一致）
+-- 注意：t3 按钮虽不影响页面可见性，但携带 *:manage 操作码（PermissionsGuard 据此放行
+-- 保存配置/上架下架/渠道与规则的增删改），不绑则运营角色这类操作会全部 403，故必须绑定；
+-- 按钮 id 未设变量，按 permission 精确匹配（assessment: 前缀全系统唯一）
+INSERT IGNORE INTO sys_role_menu (role_id, menu_id)
+SELECT r.id, m.id
+FROM sys_role r
+JOIN sys_menu m ON (
+  m.id IN (@asmt_dir, @asmt_oa, @asmt_list, @asmt_channel, @asmt_reply, @asmt_stats)
+  OR m.permission IN (
+    'assessment:oa:manage', 'assessment:info:manage',
+    'assessment:channel:manage', 'assessment:reply:manage'
+  )
+)
+WHERE r.code = 'admin';
