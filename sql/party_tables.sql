@@ -9,7 +9,7 @@
 --   * client_key: 正式 = TOKEN_VERIFY 的 uid; demo = 请求来源 IP
 --   * 结算在客户端本地完成、不上传，服务端仅做会话状态机与惰性清扫
 --     （例外：任务中心的每日任务奖励由服务端入账，流水落 party_star_trans）
---   * 题面/词面/徽章文案/星愿墙种子由服务端代码内嵌
+--   * 题面/词面/徽章文案等种子由服务端代码内嵌
 --     (src/nest/modules/party/data/*.js) 提供，本脚本只建表不插种子
 -- ============================================
 
@@ -97,28 +97,6 @@ CREATE TABLE IF NOT EXISTS `party_wordbank` (
   KEY `idx_level_theme` (`level`, `theme`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='你画我猜词库表（占位，现由data/draw-words.js供词）';
 
-CREATE TABLE IF NOT EXISTS `star_wish` (
-  `id` VARCHAR(32) NOT NULL COMMENT '星愿ID（ULID）',
-  `client_key` VARCHAR(64) NOT NULL COMMENT '身份键：一人一愿',
-  `text` VARCHAR(120) NOT NULL COMMENT '星愿文本（<=40字）',
-  `theme` VARCHAR(16) NOT NULL DEFAULT '愿望' COMMENT '主题（七选一）',
-  `updated_at` DATETIME NOT NULL COMMENT '最近一次写入时间（回包转毫秒）',
-  `update_key` VARCHAR(16) NOT NULL DEFAULT '' COMMENT '日限键 YYYYMMDD（每日限改1次）',
-  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_client_key` (`client_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户星愿表';
-
-CREATE TABLE IF NOT EXISTS `star_wish_like` (
-  `id` VARCHAR(32) NOT NULL COMMENT '点赞ID（ULID）',
-  `wish_id` VARCHAR(64) NOT NULL COMMENT '被点亮的星：墙条目id或星愿id',
-  `client_key` VARCHAR(64) NOT NULL COMMENT '点亮者身份键',
-  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '点亮时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_wish_client` (`wish_id`, `client_key`),
-  KEY `idx_client_key` (`client_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='星愿墙点赞表（liked去重+计数）';
-
 CREATE TABLE IF NOT EXISTS `party_profile` (
   `id` VARCHAR(32) NOT NULL COMMENT '档案ID（ULID）',
   `client_key` VARCHAR(64) NOT NULL COMMENT '身份键',
@@ -149,7 +127,7 @@ CREATE TABLE IF NOT EXISTS `party_task_progress` (
   `id` VARCHAR(32) NOT NULL COMMENT '进度ID（ULID）',
   `client_key` VARCHAR(64) NOT NULL COMMENT '身份键：uid或内网IP（demo）',
   `day` VARCHAR(8) NOT NULL COMMENT '日键 YYYYMMDD（每日 0 点自然重置，不刷历史行）',
-  `task_key` VARCHAR(32) NOT NULL COMMENT '任务键 open_game/star_visit/like_wish/finish_game',
+  `task_key` VARCHAR(32) NOT NULL COMMENT '任务键 open_game/star_visit/finish_game',
   `progress` INT NOT NULL DEFAULT 0 COMMENT '当日进度（封顶任务 target）',
   `claimed` TINYINT NOT NULL DEFAULT 0 COMMENT '当日奖励已领取 0/1',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

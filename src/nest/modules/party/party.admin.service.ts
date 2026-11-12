@@ -287,13 +287,12 @@ export class PartyAdminService {
     if (!tagKey || !name) return this.fail(400, 'tagKey and name required')
     const dup = await this.prisma.client.partyThemeTag.findUnique({ where: { tagKey } })
     if (dup) return this.fail(409, 'tagKey already exists')
-    const scene = r.scene === 'wish' ? 'wish' : 'question'
     const created = await this.prisma.client.partyThemeTag.create({
       data: {
         id: genId(),
         tagKey,
         name,
-        scene,
+        scene: 'question', // 主题标签仅用于题库场景（星愿墙下线后 wish 场景不再开放）
         color: this.str(r.color, 16),
         emoji: this.str(r.emoji, 16),
         sort: clampInt(r.sort, 0, 9999, 0),
@@ -309,7 +308,7 @@ export class PartyAdminService {
     const src = body || {}
     const data: Record<string, unknown> = {}
     if (typeof src.name === 'string' && src.name.trim()) data.name = this.str(src.name, 64)
-    if (typeof src.scene === 'string') data.scene = src.scene === 'wish' ? 'wish' : 'question'
+    if (typeof src.scene === 'string') data.scene = 'question' // wish 场景已随星愿墙下线
     if (typeof src.color === 'string') data.color = this.str(src.color, 16)
     if (typeof src.emoji === 'string') data.emoji = this.str(src.emoji, 16)
     if (src.sort !== undefined) data.sort = clampInt(src.sort, 0, 9999, row.sort)

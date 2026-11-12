@@ -121,10 +121,6 @@ export function dayIndex(): number {
   return Math.floor((now.getTime() - start.getTime()) / 86400000)
 }
 
-export function hourIndex(): number {
-  return new Date().getHours()
-}
-
 /* ---------- 种子随机（镜像 mock.js：FNV-1a + mulberry32） ---------- */
 export function seedOf(str: string): number {
   let h = 2166136261

@@ -19,7 +19,6 @@ const WX_API_TIMEOUT = 5000
 
 /** 前端 kind → 后端 targetType 映射（与 party_report.target_type 列口径对齐） */
 const KIND_TO_TARGET: Record<string, string> = {
-  wish: 'wish',
   session: 'session',
   name: 'name',
   content: 'content',

@@ -1,6 +1,6 @@
 /**
- * 趣局模块：auth 登录（0 号端点）+ 22 端点
- * （session #1-8 / games #9-12 / wish #13-16 / profile #17-18 / tasks #19-21 / rank #22）
+ * 趣局模块：auth 登录（0 号端点）+ 18 端点
+ * （session #1-8 / games #9-12 / profile #17-18 / tasks #19-21 / rank #22；wish #13-16 已下线勿恢复）
  * + Admin 域（PRD 7.1.4：questions/wordbank/themes/game-config/sessions/stats/reports）
  * - 无额外 imports：PrismaModule @Global、data 复制件为纯函数数据源
  * - PartyAuthService / TasksService / RankService 依赖 PartyProfileService（先声明）
@@ -23,15 +23,12 @@ import { PartySessionController } from './party.session.controller'
 import { PartySessionService } from './party.session.service'
 import { PartyTasksController } from './party.tasks.controller'
 import { PartyTasksService } from './party.tasks.service'
-import { PartyWishController } from './party.wish.controller'
-import { PartyWishService } from './party.wish.service'
 
 @Module({
   controllers: [
     PartyAuthController,
     PartySessionController,
     PartyGamesController,
-    PartyWishController,
     PartyProfileController,
     PartyTasksController,
     PartyRankController,
@@ -43,7 +40,6 @@ import { PartyWishService } from './party.wish.service'
     PartyGameService, // WS 编排 + 策略注册（SessionService 依赖，先声明）
     PartySessionService,
     PartyGamesService,
-    PartyWishService,
     PartyTasksService, // 任务中心（端点 #19-21：bump 记账 / claim 事务入账）
     PartyRankService, // 星光总榜（端点 #22）
     PartyAdminService,

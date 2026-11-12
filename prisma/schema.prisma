@@ -1704,31 +1704,6 @@ model PartyWordbank {
   @@map("party_wordbank")
 }
 
-/// 用户星愿表（一人一愿；PRD 4.8 每日限改 1 次）
-model StarWish {
-  id         String   @id @db.VarChar(32)
-  clientKey  String   @unique @map("client_key") @db.VarChar(64)
-  text       String   @db.VarChar(120) // ≤40 字
-  theme      String   @db.VarChar(16) // WISH_THEMES 七选一
-  updatedAt  DateTime @map("updated_at") // 显式维护；回包转毫秒对齐 mock
-  updateKey  String   @map("update_key") @db.VarChar(16) // YYYYMMDD，当日限改判定键
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  @@map("star_wish")
-}
-
-/// 星愿墙点赞表（liked 去重 + 计数；wish_id 为墙条目 id 或星愿 id）
-model StarWishLike {
-  id        String   @id @db.VarChar(32)
-  wishId    String   @map("wish_id") @db.VarChar(64)
-  clientKey String   @map("client_key") @db.VarChar(64)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@unique([wishId, clientKey], map: "uk_wish_client")
-  @@index([clientKey], map: "idx_client_key")
-  @@map("star_wish_like")
-}
-
 /// 星聚档案表（client_key 维度星光本位；新账号诚实 0 值）
 model PartyProfile {
   id             String    @id @db.VarChar(32)
@@ -1749,8 +1724,8 @@ model PartyProfile {
 model PartyTaskProgress {
   id        String   @id @db.VarChar(32) // ULID
   clientKey String   @map("client_key") @db.VarChar(64)
-  day       String   @db.VarChar(8) // 日键 YYYYMMDD（与 star_wish.update_key 同口径）
-  taskKey   String   @map("task_key") @db.VarChar(32) // open_game/star_visit/like_wish/finish_game
+  day       String   @db.VarChar(8) // 日键 YYYYMMDD
+  taskKey   String   @map("task_key") @db.VarChar(32) // open_game/star_visit/finish_game
   progress  Int      @default(0)
   claimed   Boolean  @default(false) @db.TinyInt // 当日奖励已领取
   createdAt DateTime @default(now()) @map("created_at")

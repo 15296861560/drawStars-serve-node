@@ -64,20 +64,11 @@ export class PartyProfileService {
     )
     const hostRows = rows.filter(r => r.isHost)
 
-    let starMarkerUnlocked = false
-    const myWish = await this.prisma.client.starWish.findUnique({ where: { clientKey } })
-    if (myWish) {
-      const likeCount = await this.prisma.client.starWishLike.count({
-        where: { wishId: 'wish_' + myWish.id },
-      })
-      starMarkerUnlocked = likeCount >= 50
-    }
-
     const unlocks: Record<string, boolean> = {
       first_star: playedRows.length >= 1,
       convener: hostRows.length >= 10,
       social_star: hostRows.some(r => r.session && r.session.playerLimit >= 8),
-      star_marker: starMarkerUnlocked,
+      star_marker: false, // 星愿墙已下线（2026-11 类目整改），徽章保留但不再可达成
     }
 
     const badges = BADGES.map(
@@ -196,35 +187,6 @@ export class PartyProfileService {
         })
       }
       await tx.partySessionPlayer.updateMany({
-        where: { clientKey: deviceKey },
-        data: { clientKey: userKey },
-      })
-
-      // 星愿：取较新者（保其点赞），另一条删除；无正式星愿则整体重挂
-      const tkWish = await tx.starWish.findUnique({ where: { clientKey: userKey } })
-      const dkWish = await tx.starWish.findUnique({ where: { clientKey: deviceKey } })
-      if (tkWish && dkWish) {
-        if (dkWish.updatedAt > tkWish.updatedAt) {
-          await tx.starWish.update({ where: { id: dkWish.id }, data: { clientKey: userKey } })
-          await tx.starWish.delete({ where: { id: tkWish.id } })
-        } else {
-          await tx.starWish.delete({ where: { id: dkWish.id } })
-        }
-      } else if (dkWish && !tkWish) {
-        await tx.starWish.update({ where: { id: dkWish.id }, data: { clientKey: userKey } })
-      }
-
-      // 点赞重挂；撞 (wish_id, client_key) 时删除游客点赞
-      const tkLikes = await tx.starWishLike.findMany({
-        where: { clientKey: userKey },
-        select: { wishId: true },
-      })
-      if (tkLikes.length) {
-        await tx.starWishLike.deleteMany({
-          where: { clientKey: deviceKey, wishId: { in: tkLikes.map((r) => r.wishId) } },
-        })
-      }
-      await tx.starWishLike.updateMany({
         where: { clientKey: deviceKey },
         data: { clientKey: userKey },
       })

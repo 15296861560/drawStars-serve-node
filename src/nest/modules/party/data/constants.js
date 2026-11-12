@@ -61,9 +61,6 @@ const LEVELS = [
 /** 真心话大冒险玩法 B 主题池（PRD 4.3） */
 const TOD_THEMES = ['青春', '暗恋', '深夜', '旅行', '未来', '遗憾', '愿望']
 
-/** 星愿标签（PRD 4.8） */
-const WISH_THEMES = ['青春', '暗恋', '旅行', '未来', '遗憾', '愿望', '治愈']
-
 /** 段位系统（PRD 4.9） */
 const RANKS = [
   { key: 'newcomer', label: '拾星新人', min: 0, max: 99, emoji: '🌱' },
@@ -126,7 +123,6 @@ module.exports = {
   GAME_MAP,
   LEVELS,
   TOD_THEMES,
-  WISH_THEMES,
   RANKS,
   rankOf,
   BADGES,

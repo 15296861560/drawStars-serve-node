@@ -1,9 +1,7 @@
 /**
  * Party 模块演示数据 seed（幂等，可重复执行）。
  * 覆盖：
- * - party_profile：本机联调者 + 3 位星愿墙 NPC
- * - star_wish：联调者（updateKey 置为昨天，今天可再保存一次验证当日限改）+ NPC 墙内容
- * - star_wish_like：种子墙条目点赞 + 用户星愿点赞（likes/liked 渲染）
+ * - party_profile：本机联调者 + 3 位演示伙伴 NPC
  * - party_session / party_session_player：1 场 CLOSED（历史趣局）+ 1 场 WAITING（大厅快照）
  * - party_card：CLOSED 会话的纪念卡（mockCard 同形库卡）
  * - party_badge：12 枚徽章运营位入库
@@ -26,12 +24,6 @@ const NPC3 = 'ip_10.0.0.203' // 桃桃
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-/** 与 party.util.dayKey 同口径：YYYYMMDD */
-function dayKey(offsetDays = 0): string {
-  const d = new Date(Date.now() + offsetDays * DAY)
-  return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
-}
-
 /** 与 party.util.fmtDate 同口径：YYYY-MM-DD */
 function fmtDate(t: number): string {
   const d = new Date(t)
@@ -46,61 +38,11 @@ const PROFILES = [
   { clientKey: NPC3, name: '桃桃', starVal: 512 },
 ]
 
-/* ---------- 2. 星愿 ---------- */
+/* ---------- 2. 趣局 / 纪念卡 ID ---------- */
 const TOD_SESSION_ID = 'seed_ps_tod_001'
 const DRAW_SESSION_ID = 'seed_ps_draw_002'
 
-const WISHES = [
-  {
-    id: 'seed_wish_001',
-    clientKey: ME,
-    text: '今晚想把星星排成队，说一句慢一点的好梦',
-    theme: '愿望',
-    updatedAt: new Date(Date.now() - DAY), // 昨日提交
-    updateKey: dayKey(-1), // 今天的 PUT /wish 仍可保存一次
-  },
-  {
-    id: 'seed_wish_101',
-    clientKey: NPC1,
-    text: '想和不吵架的人一起去看一次银河',
-    theme: '旅行',
-    updatedAt: new Date(Date.now() - 5 * DAY),
-    updateKey: dayKey(-5),
-  },
-  {
-    id: 'seed_wish_102',
-    clientKey: NPC2,
-    text: '愿所有没说完的话都有续杯的机会',
-    theme: '遗憾',
-    updatedAt: new Date(Date.now() - 4 * DAY),
-    updateKey: dayKey(-4),
-  },
-  {
-    id: 'seed_wish_103',
-    clientKey: NPC3,
-    text: '下学期想坐第一排，和阳光一起认真学习',
-    theme: '青春',
-    updatedAt: new Date(Date.now() - 3 * DAY),
-    updateKey: dayKey(-3),
-  },
-]
-
-/** 星愿渲染 id：'wish_' + star_wish.id（wall/like 端点口径） */
-const wishId = (id: string) => 'wish_' + id
-
-/* ---------- 3. 点赞（wishId + clientKey 幂等去重） ---------- */
-const LIKES = [
-  { id: 'seed_lk_001', wishId: 'w_01', clientKey: ME }, // 种子墙条目 → liked=true 演示
-  { id: 'seed_lk_002', wishId: 'w_03', clientKey: ME },
-  { id: 'seed_lk_011', wishId: wishId('seed_wish_101'), clientKey: NPC1 },
-  { id: 'seed_lk_012', wishId: wishId('seed_wish_101'), clientKey: NPC2 },
-  { id: 'seed_lk_013', wishId: wishId('seed_wish_101'), clientKey: NPC3 },
-  { id: 'seed_lk_021', wishId: wishId('seed_wish_102'), clientKey: NPC1 },
-  { id: 'seed_lk_031', wishId: wishId('seed_wish_001'), clientKey: NPC1 }, // 联调者的愿被点赞
-  { id: 'seed_lk_032', wishId: wishId('seed_wish_001'), clientKey: NPC3 },
-]
-
-/* ---------- 4. 趣局 + 席位 ---------- */
+/* ---------- 3. 趣局 + 席位 ---------- */
 const TOD_CLOSED_AT = new Date(Date.now() - 3 * DAY + 48 * 60000)
 const TOD_STARTED_AT = new Date(Date.now() - 3 * DAY)
 
@@ -151,7 +93,7 @@ const SESSIONS = [
   },
 ]
 
-/* ---------- 5. 纪念卡（mockCard 同形；card 端点命中库卡即原样返回） ---------- */
+/* ---------- 4. 纪念卡（mockCard 同形；card 端点命中库卡即原样返回） ---------- */
 function cardData(sessionId: string, code: string) {
   const host = SESSIONS[0].players[0]
   return {
@@ -181,7 +123,7 @@ function cardData(sessionId: string, code: string) {
   }
 }
 
-/* ---------- 6. 徽章运营位（constants.BADGES 12 枚入库） ---------- */
+/* ---------- 5. 徽章运营位（constants.BADGES 12 枚入库） ---------- */
 const BADGES = [
   { key: 'first_star', emoji: '⭐', label: '第一颗星', condition: '完成首场对局' },
   { key: 'tod_master', emoji: '💫', label: '真心话大师', condition: '累计完成 50 题' },
@@ -197,7 +139,7 @@ const BADGES = [
   { key: 'star_messenger', emoji: '💌', label: '拾星信使', condition: '纪念卡分享 10 次' },
 ]
 
-/* ---------- 7. 题库：默认真心话大冒险全量入库 ---------- */
+/* ---------- 6. 题库：默认真心话大冒险全量入库 ---------- */
 /** 旧版 3 条占位题（题面与正式题库重复）：seed 时清掉，避免库里出现重复题 */
 const LEGACY_QUESTION_IDS = ['seed_q_001', 'seed_q_002', 'seed_q_003']
 
@@ -267,24 +209,6 @@ async function main() {
     })
   }
   console.log('[seed-party] party_profile x', PROFILES.length)
-
-  for (const w of WISHES) {
-    await prisma.starWish.upsert({
-      where: { clientKey: w.clientKey },
-      create: w,
-      update: { text: w.text, theme: w.theme, updatedAt: w.updatedAt, updateKey: w.updateKey },
-    })
-  }
-  console.log('[seed-party] star_wish x', WISHES.length)
-
-  for (const l of LIKES) {
-    await prisma.starWishLike.upsert({
-      where: { wishId_clientKey: { wishId: l.wishId, clientKey: l.clientKey } },
-      create: l,
-      update: {},
-    })
-  }
-  console.log('[seed-party] star_wish_like x', LIKES.length)
 
   for (const s of SESSIONS) {
     await prisma.partySession.upsert({
