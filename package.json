@@ -24,6 +24,7 @@
     "prisma:ai-assistant-tables": "prisma db execute --file sql/ai_assistant_tables.sql --schema prisma/schema.prisma",
     "prisma:seed-party": "tsx prisma/seed-party.ts",
     "prisma:seed-workflow": "tsx prisma/seed-workflow.ts",
+    "prisma:seed-assessment-content": "tsx prisma/seed-assessment-content.ts",
     "prisma:rbac-tables": "prisma db execute --file sql/rbac_tables.sql --schema prisma/schema.prisma",
     "prisma:app-manage-table": "prisma db execute --file sql/app_manage.sql --schema prisma/schema.prisma",
     "prisma:points-tables": "prisma db execute --file sql/points_tables.sql --schema prisma/schema.prisma",
