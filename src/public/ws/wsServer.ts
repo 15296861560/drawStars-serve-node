@@ -53,27 +53,72 @@ function parsePartyEnvelope(text: string): PartyWsEnvelope | null {
 // noServer 模式：所有端口的 upgrade 统一走 ws.handleUpgrade，成员同处一个 hub 广播面
 const ws = new WebSocket.Server({ noServer: true })
 
+/*
+ * 服务端存活扫描（与前端 me_ping 呼应）：
+ * 生产链路 wss://serve.drawstars.cn 经 Cloudflare 代理，空闲 WS 约 100s 被其静默回收
+ * —— 半开黑洞：客户端收不到 close、服务端写入不报错，但成员实际早已不在线。
+ * 每 25s 扫一轮：先把存活标记翻为 false 并发协议层 ping（微信 socket 原生自动回 pong）；
+ * 下一轮仍未被 pong / 任何上行（含 me_ping）标活的连接视为失活，立即 terminate
+ * —— 触发 close → leaveChannel，presence 即刻写离线，广播面不再向黑洞投递。
+ */
+const HEARTBEAT_GAP_MS = 25_000
+const aliveMap = new WeakMap<WebSocket, boolean>()
+const sweeper = setInterval(() => {
+  for (const client of Array.from(ws.clients)) {
+    if (aliveMap.get(client) !== true) {
+      try {
+        client.terminate()
+      } catch {
+        /* noop */
+      }
+      continue
+    }
+    aliveMap.set(client, false)
+    try {
+      client.ping()
+    } catch {
+      /* noop */
+    }
+  }
+}, HEARTBEAT_GAP_MS)
+sweeper.unref()
+
 function handleUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer) {
   ws.handleUpgrade(req, socket, head, client => handleConnection(client, req))
 }
 
 function handleConnection(client: WebSocket, req: IncomingMessage) {
+  // 存活标记：pong 与任何上行消息都会翻回 true（见上方 sweeper 注释）
+  aliveMap.set(client, true)
+  client.on('pong', () => aliveMap.set(client, true))
   const channelId = channelOfRoom(req)
   const clientKey = resolveClientKeyFromHeaders(req.headers, req.socket.remoteAddress || '')
   const member: WsMember = { socket: client, channelId, clientKey }
   if (channelId) {
     joinChannel(member)
-    // party 编排层：新成员入频道回放钩子（网关未绑定时为空操作）
-    partyWsBridge()?.onMemberJoined(member)
+    // party 编排层：新成员入频道回放钩子（网关未绑定时为空操作）。
+    // 监听器内同步异常会击穿 Node 进程，桥调用一律外层兜底
+    try {
+      partyWsBridge()?.onMemberJoined(member)
+    } catch (err) {
+      console.error('[ws] onMemberJoined error:', err)
+    }
   }
 
   client.send('连接WebSocket成功')
   client.on('message', msg => {
+    aliveMap.set(client, true) // 任何上行（含客户端 me_ping 心跳）都视为存活
     const text = typeof msg === 'string' ? msg : msg.toString()
     const envelope = parsePartyEnvelope(text)
     if (envelope && channelId) {
+      // 客户端 25s 保活心跳：网关层静默消费，不进策略域（活跃已由上一行标记）
+      if (envelope.type === 'me_ping') return
       // party 策略域信封：路由到编排层（viewerKey 已按连接身份解析，客户端不可伪造）
-      partyWsBridge()?.onMemberMessage(member, envelope)
+      try {
+        partyWsBridge()?.onMemberMessage(member, envelope)
+      } catch (err) {
+        console.error('[ws] onMemberMessage error:', err)
+      }
       return
     }
     console.log('来自前端的数据：' + text)
