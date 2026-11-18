@@ -12,6 +12,7 @@ import type { PartyWsGateway, PartyWsEnvelope } from '../../../../public/ws/part
 import type { WsMember } from '../../../../public/ws/ws-hub'
 import { sessionIdOf } from '../party.util'
 import { DrawStrategy } from './draw.strategy'
+import { TodStrategy } from './tod.strategy'
 import { GAME_STRATEGIES, registerGameStrategy } from './party.strategy'
 import type { GameWsEvent } from './party.strategy'
 
@@ -31,6 +32,8 @@ export class PartyGameService implements PartyWsGateway {
   constructor(private readonly prisma: PrismaService) {
     // 运行时注册策略实例（REGISTRY 顶层仅定义 Map，规避模块顶层求值时序）
     registerGameStrategy('draw', new DrawStrategy(prisma))
+    // tod：无服务端状态机的事件直通广播（pick / answer 注入 viewerKey 后原样回频道）
+    registerGameStrategy('tod', new TodStrategy())
   }
 
   /* ---------- 会话元数据（高频路径缓存） ---------- */
