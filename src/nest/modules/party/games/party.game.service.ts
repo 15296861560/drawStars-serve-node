@@ -12,6 +12,9 @@ import type { PartyWsGateway, PartyWsEnvelope } from '../../../../public/ws/part
 import type { WsMember } from '../../../../public/ws/ws-hub'
 import { sessionIdOf } from '../party.util'
 import { DrawStrategy } from './draw.strategy'
+import { LadyStrategy } from './lady.strategy'
+import { BluffStrategy } from './bluff.strategy'
+import { DiceStrategy } from './dice.strategy'
 import { TodStrategy } from './tod.strategy'
 import { GAME_STRATEGIES, registerGameStrategy } from './party.strategy'
 import type { GameWsEvent } from './party.strategy'
@@ -34,6 +37,10 @@ export class PartyGameService implements PartyWsGateway {
     registerGameStrategy('draw', new DrawStrategy(prisma))
     // tod：无服务端状态机的事件直通广播（pick / answer 注入 viewerKey 后原样回频道）
     registerGameStrategy('tod', new TodStrategy())
+    // lady / bluff / dice：同范式事件直通（各自轻校验，注入 actorId 后回频道）
+    registerGameStrategy('lady', new LadyStrategy())
+    registerGameStrategy('bluff', new BluffStrategy())
+    registerGameStrategy('dice', new DiceStrategy())
   }
 
   /* ---------- 会话元数据（高频路径缓存） ---------- */
