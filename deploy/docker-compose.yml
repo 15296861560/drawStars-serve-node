@@ -68,6 +68,9 @@ services:
       NOTIFY_PORT: ${NOTIFY_PORT:-8030}
       UPLOAD_DIR: /app/uploadDir
       TOKEN_VERIFY: ${TOKEN_VERIFY:-false}
+      # 拾星趣局管理域单 key：须与前端构建期烧入 bundle 的 VITE_PARTY_ADMIN_KEY 一致
+      # 默认 party-admin-dev 对齐现有 web 镜像内置值，换强 key 时 NAS .env 同步覆盖
+      PARTY_ADMIN_KEY: ${PARTY_ADMIN_KEY:-party-admin-dev}
     ports:
       - "${SERVE_HOST_PORT:-8010}:${SERVE_PORT:-8010}"
       - "${WS_HOST_PORT:-8020}:${WS_PORT:-8020}"
