@@ -6,6 +6,9 @@
  *   (tod.answer) 由行动端广播，观察端跟随渲染——question 把命中的题面即时同步给
  *   全员（流水 + 亮题看板），不再干等 answer 才推进；answer 必带 text
  *   （各端 api.todDraw 本地防连重缓存不同，观察端不重新抽题）
+ * - tod.next：回合推进对齐事件。任一端从 reveal 结算态点「下一回合」/ 自动到时，
+ *   广播目标回合号 no，全房间据此对齐 _round 再推进——消除「一人结算中、另一人
+ *   抢先点下一回合」导致的各端回合分叉与互相拒收死锁（_applyNext 幂等，no≤当前则忽略）
  * - actorId 由服务端注入发送者 viewerKey：各端 session.players 里自己的行
  *   渲染为 'u_me'，观察端按 players 列表解析，发送端回包解析不到自然丢弃
  * - 服务端轻校验（PRD 8.4）：kind 合法 / done 布尔 / text ≤ 200，不合规丢弃
@@ -22,6 +25,8 @@ const TOD_TEXT_LIMIT = 200
 /** 轻校验：no / kind / text / done（不合规抛错 → 编排层捕获并丢弃） */
 function todCheck(type: string, data: Record<string, unknown>): void {
   if (!clampInt(data.no, 1, 999, 0)) throw new Error('tod.* 缺少合法轮次 no')
+  // tod.next 是回合推进对齐事件：只需合法 no，全房间据此对齐 _round，无 kind/done/text
+  if (type === 'tod.next') return
   const kind = String(data.kind || '')
   if (!TOD_KINDS.has(kind)) throw new Error('tod.* kind 非法：' + kind)
   if (type === 'tod.question') {
@@ -44,8 +49,8 @@ export class TodStrategy extends RelayStrategy {
   constructor() {
     super({
       gameType: 'tod',
-      events: ['tod.pick', 'tod.question', 'tod.answer'],
-      replayEvents: ['tod.pick', 'tod.question', 'tod.answer'],
+      events: ['tod.pick', 'tod.question', 'tod.answer', 'tod.next'],
+      replayEvents: ['tod.pick', 'tod.question', 'tod.answer', 'tod.next'],
       check: todCheck,
     })
   }
