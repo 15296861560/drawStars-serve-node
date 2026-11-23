@@ -11,7 +11,7 @@
  * onMemberJoined 单发给断线重连者对齐进度；超窗条目自然失效。
  */
 import type { PartySession, PartySessionPlayer } from '@prisma/client'
-import { broadcastChannel } from '../../../../public/ws/ws-hub'
+import { broadcastChannel, channelSize } from '../../../../public/ws/ws-hub'
 import type { WsMember } from '../../../../public/ws/ws-hub'
 import { channelOf, partyEnvelope } from '../party.util'
 import type { GameStrategy, GameWsEvent } from './party.strategy'
@@ -70,7 +70,12 @@ export class RelayStrategy implements GameStrategy {
       this.replay.set(event.sessionId, list)
     }
     const channelId = channelOf(event.sessionId)
-    broadcastChannel(channelId, () => partyEnvelope(channelId, event.type, data))
+    const total = channelSize(channelId)
+    const sent = broadcastChannel(channelId, () => partyEnvelope(channelId, event.type, data))
+    // 投递 n/房间 m：m 偏小=对端 WS 未入频道（前端连接问题）；n<m=有连接非 OPEN（半开）
+    console.log(
+      `[ws] relay ${event.type} -> ${channelId} | 投递=${sent}/${total} | actor=${event.viewerKey}`,
+    )
   }
 
   /** 消息合规校验（PRD 8.4：不合规抛错 → 编排层捕获并丢弃） */
@@ -120,9 +125,10 @@ export class RelayStrategy implements GameStrategy {
         for (const item of list) {
           member.socket.send(partyEnvelope(channelId, item.type, item.data))
         }
+        console.log(`[ws] replay ${list.length} 条 -> ${member.clientKey} | ${channelId}（重连对齐）`)
       }
-    } catch {
-      /* 回放失败静默（PRD 8.4） */
+    } catch (err) {
+      console.warn('[ws] replay 发送失败：' + (err as Error).message)
     }
   }
 

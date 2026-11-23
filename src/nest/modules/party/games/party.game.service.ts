@@ -90,19 +90,35 @@ export class PartyGameService implements PartyWsGateway {
           ? (envelope.data as Record<string, unknown>)
           : {},
     }
+    // 诊断日志：recv=网关已收到上行；drop*=拒收原因。draw.delta 高频（每笔迹一条）
+    // 仅记异常分支防刷屏，其余真人动作每条一条
+    if (event.type !== 'draw.delta') {
+      console.log(`[ws] recv ${event.type} | client=${member.clientKey} | session=${sessionId}`)
+    }
     void this.sessionMetaOf(sessionId)
       .then(async meta => {
-        if (!meta || meta.status !== 'PLAYING') return
+        if (!meta || meta.status !== 'PLAYING') {
+          console.warn(
+            `[ws] drop ${event.type} | client=${member.clientKey} | 会话状态=${meta ? meta.status : '不存在'}`,
+          )
+          return
+        }
         const strategy = GAME_STRATEGIES.get(meta.gameType)
-        if (!strategy) return
+        if (!strategy) {
+          console.warn(`[ws] drop ${event.type} | client=${member.clientKey} | 无 ${meta.gameType} 策略`)
+          return
+        }
         try {
           strategy.validate(event) // PRD 8.4：不合规直接丢弃
-        } catch {
+        } catch (err) {
+          console.warn(
+            `[ws] drop ${event.type} | client=${member.clientKey} | 校验拒收：${(err as Error).message}`,
+          )
           return
         }
         await strategy.handleWs(event)
       })
-      .catch(() => {})
+      .catch(err => console.error(`[ws] handle ${event.type} 异常：`, err))
   }
 
   /* ---------- 会话生命周期钩子（session.service start / close 挂接） ---------- */

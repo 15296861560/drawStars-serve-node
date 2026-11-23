@@ -13,7 +13,7 @@ import type { Duplex } from 'stream'
 import WebSocket from 'ws'
 import config from '../../config/publish-config'
 import { resolveClientKeyFromHeaders } from '../../nest/modules/party/party.util'
-import { joinChannel, leaveChannel } from './ws-hub'
+import { channelSize, joinChannel, leaveChannel } from './ws-hub'
 import type { WsMember } from './ws-hub'
 import { partyWsBridge } from './party-ws-bridge'
 import type { PartyWsEnvelope } from './party-ws-bridge'
@@ -63,9 +63,15 @@ const ws = new WebSocket.Server({ noServer: true })
  */
 const HEARTBEAT_GAP_MS = 25_000
 const aliveMap = new WeakMap<WebSocket, boolean>()
+/** socket → member：sweeper 手里只有 socket 引用，靠它反查频道/身份打踢出日志 */
+const memberMap = new WeakMap<WebSocket, WsMember>()
 const sweeper = setInterval(() => {
   for (const client of Array.from(ws.clients)) {
     if (aliveMap.get(client) !== true) {
+      const m = memberMap.get(client)
+      console.warn(
+        `[ws] sweep 踢出失活连接 ${m ? m.channelId : '?'} | client=${m ? m.clientKey : '?'}（25s 无 pong/上行，多为半开黑洞）`,
+      )
       try {
         client.terminate()
       } catch {
@@ -94,8 +100,10 @@ function handleConnection(client: WebSocket, req: IncomingMessage) {
   const channelId = channelOfRoom(req)
   const clientKey = resolveClientKeyFromHeaders(req.headers, req.socket.remoteAddress || '')
   const member: WsMember = { socket: client, channelId, clientKey }
+  memberMap.set(client, member)
   if (channelId) {
     joinChannel(member)
+    console.log(`[ws] join ${channelId} | client=${clientKey}（房间现 ${channelSize(channelId)} 连接）`)
     // party 编排层：新成员入频道回放钩子（网关未绑定时为空操作）。
     // 监听器内同步异常会击穿 Node 进程，桥调用一律外层兜底
     try {
@@ -125,9 +133,14 @@ function handleConnection(client: WebSocket, req: IncomingMessage) {
     client.send('服务端发送的信息：' + new Date().toLocaleString())
   })
 
-  client.on('close', () => {
+  // code 判读：1000=前端主动关闭（换页 onUnload、主动 close()）；1006=链路异常
+  // （断网 / 半开黑洞 / sweep 踢出——踢出前一条必有 sweep 日志）；1005=对端未回状态码
+  client.on('close', (code, reason) => {
     leaveChannel(member)
-    console.log('前端主动断开了链接：')
+    const why =
+      code === 1000 ? '（前端主动关闭，如换页）' : code === 1006 ? '（链路异常断开）' : ''
+    const extra = reason && reason.length ? ' | reason=' + reason.toString().slice(0, 80) : ''
+    console.log(`[ws] close ${channelId || '(无频道)'} | client=${clientKey} | code=${code}${why}${extra}`)
   })
 }
 

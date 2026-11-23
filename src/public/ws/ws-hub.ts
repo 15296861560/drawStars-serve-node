@@ -35,17 +35,21 @@ export function channelSize(channelId: string): number {
 
 /**
  * 频道广播：make 接收每个成员的 clientKey（供 party 侧做 u_me 渲染映射）
+ * 返回实际投递成功的连接数（供上层打 relay 诊断日志：投递 n / 房间 m）
  */
-export function broadcastChannel(channelId: string, make: (clientKey: string) => string): void {
+export function broadcastChannel(channelId: string, make: (clientKey: string) => string): number {
   const room = rooms.get(channelId)
-  if (!room || !room.size) return
+  if (!room || !room.size) return 0
+  let sent = 0
   for (const member of Array.from(room)) {
     try {
       if (member.socket.readyState === member.socket.OPEN) {
         member.socket.send(make(member.clientKey))
+        sent++
       }
     } catch {
       /* 单连接发送失败不影响其他成员 */
     }
   }
+  return sent
 }
