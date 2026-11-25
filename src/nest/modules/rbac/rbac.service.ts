@@ -6,6 +6,7 @@ import {
   getAccessTokenFromRequest,
   verifyAccessToken
 } from '../../../lib/access-token-service'
+import { hashPassword } from '../../../lib/password'
 
 export type MenuTreeNode = {
   id: number
@@ -41,11 +42,7 @@ export class RbacService {
       const info = verifyAccessToken(token)
       if (info && info.uid) return Number(info.uid)
     }
-    const q = request.query?.userId ?? request.query?.id
-    if (q !== undefined && q !== null && q !== '') return Number(q)
-    if (request.body?.userId !== undefined && request.body?.userId !== null) {
-      return Number(request.body.userId)
-    }
+    // 不再信任 query/body 中的 userId：身份只允许来自 token
     return null
   }
 
@@ -268,7 +265,7 @@ export class RbacService {
           name: body.name || '',
           phone: body.phone || null,
           email: body.email || null,
-          password: body.password,
+          password: await hashPassword(body.password),
           accountAlias: body.accountAlias || null,
           status: body.status || 'active',
           level: body.level ?? 1,
@@ -346,7 +343,10 @@ export class RbacService {
     if (!password) return { status: false, msg: '密码不能为空', data: null }
     await this.prisma.client.user.update({
       where: { id: BigInt(userId) },
-      data: { password, updateTime: BigInt(Date.now()) }
+      data: {
+        password: await hashPassword(password),
+        updateTime: BigInt(Date.now())
+      }
     })
     return { status: true, msg: '重置成功', data: true }
   }

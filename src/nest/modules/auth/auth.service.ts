@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common'
 import userService from '../../../public/service/userService'
 import { getAccessTokenFromRequest } from '../../../lib/access-token-service'
+import {
+  revokeAuthSession,
+  rotateAuthSession
+} from '../../../lib/refresh-token-service'
 
 @Injectable()
 export class AuthService {
@@ -15,8 +19,16 @@ export class AuthService {
   async registerByPhone(payload: Record<string, unknown>) {
     const userId = await userService.registerByPhone(payload)
     payload.id = userId
-    userService.setToken(payload)
+    await userService.setToken(payload)
     return payload
+  }
+
+  async refreshToken(refreshToken: string) {
+    return rotateAuthSession(refreshToken)
+  }
+
+  async logout(refreshToken: string) {
+    return revokeAuthSession(refreshToken)
   }
 
   async verifyLogin(request: {

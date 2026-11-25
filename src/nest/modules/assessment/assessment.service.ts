@@ -1076,7 +1076,7 @@ export class AssessmentService {
         { id: userId, name: payload.name, phone }
     }
 
-    userService.setToken(userRecord as never)
+    await userService.setToken(userRecord as never)
 
     const pointsDetail: number[] = []
     let grantedPoints = 0

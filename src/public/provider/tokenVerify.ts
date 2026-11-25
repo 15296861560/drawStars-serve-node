@@ -8,11 +8,13 @@ import {
 } from '../../lib/access-token-service'
 
 /**
- * 默认关闭（与历史行为一致）。
- * 需要开启时在 .env 设置 TOKEN_VERIFY=true
+ * 默认开启验签。
+ * 仅在 .env 显式设置 TOKEN_VERIFY=false/0 时关闭
  */
-const isOpenTokenVerify =
-  process.env.TOKEN_VERIFY === 'true' || process.env.TOKEN_VERIFY === '1'
+const isOpenTokenVerify = (() => {
+  const flag = String(process.env.TOKEN_VERIFY ?? '').toLowerCase()
+  return flag !== 'false' && flag !== '0'
+})()
 
 function getRequestPath(req: Request): string {
   return (req.originalUrl || req.url || '').split('?')[0]

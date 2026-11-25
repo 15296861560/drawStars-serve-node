@@ -43,6 +43,7 @@ export class MobileController {
     private readonly mobileP1: MobileP1Service
   ) {}
 
+  @Public()
   @Get('modules')
   list(@Query() query: Record<string, string>) {
     return this.mobileService.listModules({
@@ -52,6 +53,7 @@ export class MobileController {
     })
   }
 
+  @Public()
   @Get('modules/:code')
   detail(@Param('code') code: string) {
     return this.mobileService.moduleDetail(decodeURIComponent(code))
@@ -74,6 +76,7 @@ export class MobileController {
     )
   }
 
+  @Public()
   @Get('modules/:code/checkUpdate')
   checkUpdate(
     @Param('code') code: string,
@@ -85,6 +88,7 @@ export class MobileController {
     )
   }
 
+  @Public()
   @Get('modules/:code/openCheck')
   openCheck(
     @Param('code') code: string,
@@ -133,11 +137,13 @@ export class MobileController {
     return this.mobileService.checkShellUpdate(query)
   }
 
+  @Public()
   @Post('telemetry/report')
   telemetry(@Body() body: { events?: unknown[] }) {
     return this.mobileService.reportTelemetry(body?.events || [])
   }
 
+  @Public()
   @Post('modules/installed/sync')
   syncInstalled(
     @Body()
@@ -154,6 +160,7 @@ export class MobileController {
     return this.mobileService.syncInstalled(uidOf(req), body?.list || [])
   }
 
+  @Public()
   @Get('modules/:code/versions')
   versions(@Param('code') code: string) {
     return this.mobileService.listVersions(decodeURIComponent(code))
@@ -212,6 +219,7 @@ export class MobileController {
     return this.mobileP1.listFaq()
   }
 
+  @Public()
   @Get('ops/banners')
   banners(@Query() query: Record<string, string>, @Req() req: AuthedReq) {
     return this.mobileP1.listBanners(query.platform, uidOf(req))

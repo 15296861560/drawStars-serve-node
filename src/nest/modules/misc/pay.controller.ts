@@ -2,6 +2,7 @@ import { Body, Controller, Post } from '@nestjs/common'
 import AlipaySdk from 'alipay-sdk'
 import AlipayFormData from 'alipay-sdk/lib/form'
 import { getAppInfo } from '../../../db/app-info'
+import { Public } from '../../common/decorators/public.decorator'
 
 @Controller('payApi')
 export class PayController {
@@ -50,6 +51,7 @@ export class PayController {
     return { status: true, data: payUrl }
   }
 
+  @Public()
   @Post('orderMsg')
   orderMsg(@Body() body: unknown) {
     return { status: true, data: body }

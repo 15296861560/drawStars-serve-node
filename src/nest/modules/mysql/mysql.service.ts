@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { rawQuery } from '../../../db/raw-query'
+import {
+  hashPassword,
+  isHashedPassword,
+  verifyPassword
+} from '../../../lib/password'
 
 @Injectable()
 export class MysqlService {
@@ -11,8 +16,15 @@ export class MysqlService {
     if (users.length === 0) {
       return { status: true, msg: '账号不存在', data: null }
     }
-    if (password !== users[0].password) {
+    if (!(await verifyPassword(password, users[0].password))) {
       return { status: true, msg: '密码错误', data: null }
+    }
+    // 存量明文密码懒迁移
+    if (!isHashedPassword(users[0].password)) {
+      await this.prisma.client.user.update({
+        where: { id: users[0].id },
+        data: { password: await hashPassword(password) }
+      })
     }
     return { status: true, msg: '登录成功', data: users[0] }
   }
@@ -22,7 +34,7 @@ export class MysqlService {
     const result = await this.prisma.client.user.create({
       data: {
         name: payload.name,
-        password: payload.password,
+        password: await hashPassword(payload.password),
         phone: payload.phone,
         createTime: BigInt(now),
         updateTime: BigInt(now),
@@ -40,7 +52,10 @@ export class MysqlService {
   async modify(phone: string, pwd: string) {
     await this.prisma.client.user.update({
       where: { phone },
-      data: { password: pwd, updateTime: BigInt(Date.now()) }
+      data: {
+        password: await hashPassword(pwd),
+        updateTime: BigInt(Date.now())
+      }
     })
     return { status: true, msg: '修改成功', data: null }
   }

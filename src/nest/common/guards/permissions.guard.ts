@@ -25,13 +25,9 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest()
-    let uid = request.auth?.uid ? Number(request.auth.uid) : null
+    const uid = request.auth?.uid ? Number(request.auth.uid) : null
 
-    // Dev mode: TOKEN_VERIFY off — still try token or query for admin APIs
-    if (!uid) {
-      uid = this.rbacService.resolveUserIdFromRequest(request)
-    }
-
+    // 身份只能来自 AuthGuard 解析出的 token，禁止信任 query/body 中的 userId
     if (!uid) {
       throw new ForbiddenException('未登录，无法校验权限')
     }

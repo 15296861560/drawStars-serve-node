@@ -50,7 +50,8 @@ pnpm serve              # NODE_ENV=production node dist/main.js
 | `NOTIFY_PORT` | 通知服务端口 | `8030`（dev `8031`） |
 | `IM_WS_PORT` | IM WebSocket 端口 | `8040`（dev `8041`） |
 | `UPLOAD_DIR` | 文件上传目录 | 项目根 `uploadDir` |
-| `TOKEN_VERIFY` | 是否开启接口 token 校验 | `false`（关闭） |
+| `TOKEN_VERIFY` | 是否开启接口 token 校验 | `true`（默认开启，显式设 `false` 才关闭） |
+| `CAPTCHA_EXPOSE_CODE` | 是否在接口响应中回传验证码明文（仅本地联调） | 关闭 |
 | `NODE_ENV` | `production` 时使用 release 配置 | — |
 
 ## 脚本命令

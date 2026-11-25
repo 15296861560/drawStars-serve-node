@@ -1,10 +1,15 @@
 import { prisma } from '../../lib/prisma'
 import { serializeBigInt } from '../../lib/serialize'
 import {
-  buildUserToken,
   initAccessTokenService,
   verifyAccessToken
 } from '../../lib/access-token-service'
+import { createAuthSession } from '../../lib/refresh-token-service'
+import {
+  hashPassword,
+  isHashedPassword,
+  verifyPassword
+} from '../../lib/password'
 import Log from '../provider/log'
 import { OP_TYPE } from '../provider/log-operation'
 import zhenzismsClient from '../provider/sms/zhenzismsProvider'
@@ -36,6 +41,7 @@ export type UserRecord = Record<string, unknown> & {
   password?: string | null
   phone?: string | null
   token?: string
+  refreshToken?: string
 }
 
 class UserService {
@@ -122,11 +128,12 @@ class UserService {
     if (!userInfo.password) {
       userInfo.password = DEFAULT_PASSWORD
     }
+    const hashedPassword = await hashPassword(String(userInfo.password))
 
     try {
       const data = {
         name: userInfo.name as string | undefined,
-        password: userInfo.password as string | undefined,
+        password: hashedPassword,
         phone: userInfo.phone as string | undefined,
         email: userInfo.email as string | undefined,
         createTime: userInfo.createTime
@@ -171,9 +178,12 @@ class UserService {
     }
   }
 
-  setToken(userInfo: UserRecord) {
-    const token = buildUserToken(userInfo.id as number)
-    if (token) userInfo.token = token
+  async setToken(userInfo: UserRecord) {
+    const { token, refreshToken } = await createAuthSession(
+      userInfo.id as number
+    )
+    userInfo.token = token
+    userInfo.refreshToken = refreshToken
   }
 
   async loginByPassword(phone: string, password: string) {
@@ -188,11 +198,20 @@ class UserService {
     if (userInfo.status && userInfo.status !== 'active') {
       throw '账号已停用'
     }
-    if (password !== userInfo.password) {
+    if (!(await verifyPassword(password, userInfo.password as string))) {
       throw '密码错误'
     }
 
-    this.setToken(userInfo)
+    // 存量明文密码：校验通过后立即升级为哈希（懒迁移）
+    if (!isHashedPassword(userInfo.password as string)) {
+      const hashed = await hashPassword(password)
+      await prisma.user.update({
+        where: { id: BigInt(userInfo.id as number) },
+        data: { password: hashed }
+      })
+    }
+
+    await this.setToken(userInfo)
     delete userInfo.password
     return userInfo
   }
@@ -349,7 +368,7 @@ class UserService {
       throw '未开启短信一键登录'
     }
 
-    this.setToken(userInfo)
+    await this.setToken(userInfo)
     delete userInfo.password
     return userInfo
   }

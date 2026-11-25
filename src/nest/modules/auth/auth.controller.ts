@@ -8,6 +8,7 @@ import userService from '../../../public/service/userService'
 import githubProvider from '../../../public/provider/oauth/githubProvider'
 import wechatProvider from '../../../public/provider/oauth/wechatProvider'
 import config from '../../../config/publish-config'
+import { buildUserToken } from '../../../lib/access-token-service'
 
 @Public()
 @Controller('loginApi')
@@ -67,6 +68,20 @@ export class AuthController {
         data: null
       }
     }
+  }
+
+  @Post('refreshToken')
+  async refreshToken(@Body() body: { refreshToken?: string }) {
+    const data = await this.authService.refreshToken(
+      String(body.refreshToken || '')
+    )
+    return { status: true, msg: 'ok', data }
+  }
+
+  @Post('logout')
+  async logout(@Body() body: { refreshToken?: string }) {
+    await this.authService.logout(String(body.refreshToken || ''))
+    return { status: true, msg: '已登出', data: null }
   }
 
   @Post('registerByPhone')
@@ -210,7 +225,7 @@ export class AuthController {
         })
       }
 
-      userService.setToken(resultData as never)
+      await userService.setToken(resultData as never)
       delete resultData.password
       return { status: true, msg: '登录成功', data: resultData }
     } catch (error) {
@@ -326,7 +341,9 @@ export class AuthController {
         })
       }
 
-      userService.setToken(resultData as never)
+      const token = buildUserToken(Number(resultData.id))
+      if (!token) throw new Error('token 服务未就绪')
+      resultData.token = token
       delete resultData.password
       const returnUrl = `${frontendBase}login?accessToken=${encodeURIComponent(String(resultData.token))}`
       response.redirect(returnUrl)

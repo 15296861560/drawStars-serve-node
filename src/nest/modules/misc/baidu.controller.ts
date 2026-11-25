@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common'
 import { getAppInfo } from '../../../db/app-info'
 import { Public } from '../../common/decorators/public.decorator'
 
+@Public()
 @Controller('baiduApi')
 export class BaiduController {
   @Get('getMapApiKey')

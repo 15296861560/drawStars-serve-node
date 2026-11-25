@@ -12,8 +12,10 @@ import {
 } from '../../../lib/access-token-service'
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
 
+/** 默认开启验签，仅在显式设置 TOKEN_VERIFY=false/0 时关闭 */
 function isTokenVerifyEnabled() {
-  return process.env.TOKEN_VERIFY === 'true' || process.env.TOKEN_VERIFY === '1'
+  const flag = String(process.env.TOKEN_VERIFY ?? '').toLowerCase()
+  return flag !== 'false' && flag !== '0'
 }
 
 @Injectable()

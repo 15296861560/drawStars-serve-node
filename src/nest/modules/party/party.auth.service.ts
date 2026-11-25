@@ -7,7 +7,7 @@
  * - 手机号相关：个人主体无法开通微信手机号快速验证组件，本链路不再涉及
  */
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
-import { buildUserToken } from '../../../lib/access-token-service'
+import { createAuthSession } from '../../../lib/refresh-token-service'
 import wechatProvider from '../../../public/provider/oauth/wechatProvider'
 import userService from '../../../public/service/userService'
 import { PartyProfileService } from './party.profile.service'
@@ -71,9 +71,10 @@ export class PartyAuthService {
       if (!uid) throw upstreamFail('注册失败')
     }
 
-    // 签发 accessToken（AES 凭证服务，app_info.draw_stars 就绪后可用）
-    const token = buildUserToken(uid)
-    if (!token) throw upstreamFail('token 服务未就绪（app_info 缺 draw_stars 凭证）')
+    // 签发平台凭证对；accessToken 保持 AES 格式，refreshToken 独立旋转
+    const { token, refreshToken } = await createAuthSession(uid).catch(e => {
+      throw upstreamFail(e)
+    })
 
     // 派生 party 档案：clientKey 与 AuthGuard 解析口径一致（party.util authUidKey）
     const profile = await this.profileService.ensureProfile('tk_' + uid)
@@ -90,6 +91,7 @@ export class PartyAuthService {
 
     return {
       token,
+      refreshToken,
       user: {
         id: String(uid),
         name: profile.name,

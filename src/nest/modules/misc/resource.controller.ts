@@ -1,7 +1,10 @@
 import { Controller, Get, Query } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { serializeBigInt } from '../../../lib/serialize'
+import { Public } from '../../common/decorators/public.decorator'
 
+/** 省市区基础数据：注册/资料页在登录前即会调用，属公共只读数据 */
+@Public()
 @Controller('resourceApi')
 export class ResourceController {
   constructor(private readonly prisma: PrismaService) {}

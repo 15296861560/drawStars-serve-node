@@ -9,6 +9,7 @@ import {
   getAccessTokenFromRequest,
   verifyAccessToken
 } from '../../../lib/access-token-service'
+import { hashPassword, verifyPassword } from '../../../lib/password'
 
 const OAUTH_PLATFORMS = [
   'wechat',
@@ -27,6 +28,16 @@ function stripPassword<T extends Record<string, unknown>>(user: T | null) {
 
 function isEmail(account: string) {
   return account.includes('@')
+}
+
+/** 是否允许把验证码明文回传给客户端（仅本地联调，生产默认关闭） */
+function shouldExposeCaptcha(): boolean {
+  const flag = String(process.env.CAPTCHA_EXPOSE_CODE ?? '').toLowerCase()
+  if (flag === 'true' || flag === '1') return true
+  if (flag === 'false' || flag === '0') return false
+  return (
+    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'dev'
+  )
 }
 
 @Injectable()
@@ -122,9 +133,12 @@ export class UsersService {
   ) {
     const data: Record<string, unknown> = { updateTime: BigInt(Date.now()) }
     for (const [key, value] of Object.entries(payload)) {
-      if (value !== undefined) {
-        data[key] = value
-      }
+      if (value === undefined) continue
+      // 密码字段统一落库为哈希，避免上游直接写入明文
+      data[key] =
+        key === 'password' && typeof value === 'string' && value
+          ? await hashPassword(value)
+          : value
     }
     return this.prisma.client.user.update({
       where: { id: BigInt(id) },
@@ -139,7 +153,7 @@ export class UsersService {
     })
     if (!user) return false
     await this.assertAccountActive(user)
-    if (user.password !== password) {
+    if (!(await verifyPassword(password, user.password))) {
       return false
     }
     await this.updateUserInfo(id, { password: newPassword })
@@ -156,8 +170,15 @@ export class UsersService {
       }
       await userRedisClient.set(redisKey, code)
       await userRedisClient.expire(redisKey, expireSeconds)
-      console.log(`[email-captcha] ${account} type=${type} code=${code}`)
-      return { ok: true, captcha: code, channel: 'email' as const }
+      const exposed = shouldExposeCaptcha()
+      if (exposed) {
+        console.log(`[email-captcha] ${account} type=${type} code=${code}`)
+      }
+      return {
+        ok: true,
+        captcha: exposed ? code : null,
+        channel: 'email' as const
+      }
     }
 
     try {
@@ -172,7 +193,15 @@ export class UsersService {
       if (msg.includes('未过期')) {
         throw new Error(msg)
       }
-      // 短信通道失败时写入开发态验证码便于联调
+      // 短信通道失败：仅在显式开启联调开关时回传明文验证码，生产环境直接返回失败
+      if (!shouldExposeCaptcha()) {
+        return {
+          ok: false,
+          captcha: null as string | null,
+          channel: 'sms' as const,
+          warning: msg
+        }
+      }
       const code = String(Math.floor(Math.random() * 8999) + 1000)
       const redisKey = `${type}-${account}`
       if (!(await userRedisClient.exists(redisKey))) {
@@ -572,7 +601,9 @@ export class UsersService {
     })
     if (!user) throw new Error('用户不存在')
     if (user.deletedAt) throw new Error('账号已注销')
-    if (user.password !== password) throw new Error('密码错误')
+    if (!(await verifyPassword(password, user.password))) {
+      throw new Error('密码错误')
+    }
     await this.updateUserInfo(id, { status: 'deactivated' })
     return true
   }
@@ -584,7 +615,9 @@ export class UsersService {
     })
     if (!user) throw new Error('用户不存在')
     if (user.deletedAt) throw new Error('账号已注销')
-    if (user.password !== password) throw new Error('密码错误')
+    if (!(await verifyPassword(password, user.password))) {
+      throw new Error('密码错误')
+    }
     await this.updateUserInfo(id, {
       status: 'deleted',
       deletedAt: BigInt(Date.now()),
